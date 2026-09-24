@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import TimetableCalendar from '../components/TimetableCalendar';
+import BookingVerificationBanner from '../components/BookingVerificationBanner';
 
 export default function Dashboard() {
   const [faults, setFaults] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [showAllBookings, setShowAllBookings] = useState(false);
   const [showAllFaults, setShowAllFaults] = useState(false);
+  const [rooms, setRooms] = useState([]);
   const [activeBookingTab, setActiveBookingTab] = useState('approved'); // approved, pending, rejected
   const navigate = useNavigate();
   
@@ -20,12 +22,14 @@ export default function Dashboard() {
     // Fetch data from MySQL Backend
     const fetchData = async () => {
       try {
-        const [faultsRes, bookingsRes] = await Promise.all([
+        const [faultsRes, bookingsRes, roomsRes] = await Promise.all([
           axios.get(`http://localhost:5001/api/faults/${user.id}`),
-          axios.get(`http://localhost:5001/api/bookings/${user.id}`)
+          axios.get(`http://localhost:5001/api/bookings/${user.id}`),
+          axios.get(`http://localhost:5001/api/rooms`)
         ]);
         setFaults(faultsRes.data);
         setBookings(bookingsRes.data);
+        setRooms(roomsRes.data);
       } catch (err) {
         console.error("Error fetching data:", err);
       }
@@ -64,6 +68,11 @@ export default function Dashboard() {
           <p className="text-slate-500 dark:text-slate-400">{user.department}</p>
         </section>
 
+        {/* 2-Step Verification Banner */}
+        <BookingVerificationBanner user={user} onActionComplete={() => {
+          axios.get(`http://localhost:5001/api/bookings/${user.id}`).then(res => setBookings(res.data));
+        }} />
+
         <section className="mb-8">
           <h3 className="text-lg font-bold mb-4">Quick Actions</h3>
           <div className="grid grid-cols-2 gap-4">
@@ -79,6 +88,38 @@ export default function Dashboard() {
             </button>
           </div>
         </section>
+
+        {/* Campus Halls Quick Booking Selection */}
+        {rooms.length > 0 && (
+          <section className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold">Select Hall to Book</h3>
+              <button onClick={() => navigate('/book-space')} className="text-primary text-sm font-bold hover:underline">
+                View All ({rooms.length})
+              </button>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+              {rooms.slice(0, 5).map(room => (
+                <div 
+                  key={room.id}
+                  onClick={() => navigate('/book-space', { state: { roomId: room.id, roomName: room.name } })}
+                  className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-3 rounded-xl hover:border-primary cursor-pointer transition-all flex flex-col justify-between shadow-sm group"
+                >
+                  <div>
+                    <span className="material-symbols-outlined text-primary group-hover:scale-110 transition-transform">
+                      {room.type === 'Lab' ? 'science' : room.type === 'Drawing Office' ? 'architecture' : 'school'}
+                    </span>
+                    <h4 className="font-bold text-xs mt-2 line-clamp-1 group-hover:text-primary transition-colors" title={room.name}>{room.name}</h4>
+                    <p className="text-[10px] text-slate-500 mt-0.5">{room.type} • {room.capacity} Cap</p>
+                  </div>
+                  <button className="mt-3 w-full py-1 text-[10px] font-bold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 group-hover:bg-primary group-hover:text-white rounded-lg transition-colors">
+                    Book Hall
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         <section className="mb-8">
           {(() => {

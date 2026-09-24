@@ -1130,7 +1130,7 @@ export default function BookingDashboard() {
               <Bell size={20} />
               {stats.pendingBookings > 0 && <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-[#0f172a]"></span>}
             </button>
-            <div className="flex items-center gap-3 pl-2 md:pl-4 border-l border-slate-700 cursor-pointer">
+            <div onClick={() => navigate('/profile')} className="flex items-center gap-3 pl-2 md:pl-4 border-l border-slate-700 cursor-pointer hover:opacity-80 transition-opacity" title="My Profile">
               <div className="text-right hidden md:block">
                 <p className="text-sm font-bold text-white">Booking Admin</p>
                 <p className="text-xs text-slate-400 font-medium">AR Office</p>

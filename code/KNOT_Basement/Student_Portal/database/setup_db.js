@@ -80,6 +80,21 @@ async function setupDatabase() {
     `);
     await connection.query(`INSERT IGNORE INTO settings (setting_key, setting_value) VALUES ('auto_booking', 'true')`);
 
+    // Create Email Notifications Log Table
+    console.log("Creating Email Notifications table...");
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS email_notifications (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        ticket_id INT,
+        recipient_email VARCHAR(255),
+        recipient_name VARCHAR(255),
+        subject VARCHAR(255),
+        event_type VARCHAR(50),
+        message_body TEXT,
+        sent_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
     // Safety Alterations for coexisting schemas
     console.log("Running schema compatibility alterations...");
     try { await connection.query("ALTER TABLE users ADD COLUMN username VARCHAR(255) UNIQUE"); } catch(e){}
@@ -87,6 +102,9 @@ async function setupDatabase() {
     try { await connection.query("ALTER TABLE users ADD COLUMN department VARCHAR(255)"); } catch(e){}
     try { await connection.query("ALTER TABLE users ADD COLUMN email VARCHAR(255) UNIQUE"); } catch(e){}
     try { await connection.query("ALTER TABLE users MODIFY COLUMN role VARCHAR(50)"); } catch(e){}
+    try { await connection.query("ALTER TABLE users ADD COLUMN break_start VARCHAR(50) DEFAULT '12:30 PM'"); } catch(e){}
+    try { await connection.query("ALTER TABLE users ADD COLUMN break_end VARCHAR(50) DEFAULT '01:15 PM'"); } catch(e){}
+    try { await connection.query("ALTER TABLE users ADD COLUMN break_slots TEXT"); } catch(e){}
 
     try { await connection.query("ALTER TABLE faults ADD COLUMN title VARCHAR(255)"); } catch(e){}
     try { await connection.query("ALTER TABLE faults ADD COLUMN description TEXT"); } catch(e){}
@@ -99,6 +117,7 @@ async function setupDatabase() {
     try { await connection.query("ALTER TABLE faults ADD COLUMN worker_photo LONGTEXT"); } catch(e){}
     try { await connection.query("ALTER TABLE faults ADD COLUMN assigned_technician_id INT"); } catch(e){}
     try { await connection.query("ALTER TABLE faults ADD COLUMN maintenance_notes TEXT"); } catch(e){}
+    try { await connection.query("ALTER TABLE faults ADD COLUMN manager_notes TEXT"); } catch(e){}
     try { await connection.query("ALTER TABLE faults ADD COLUMN admin_verified BOOLEAN DEFAULT FALSE"); } catch(e){}
 
     try { await connection.query("ALTER TABLE bookings ADD COLUMN title VARCHAR(255)"); } catch(e){}
@@ -128,8 +147,8 @@ async function setupDatabase() {
     const [rows] = await connection.query(`SELECT * FROM users WHERE username = 'e22237'`);
     if (rows.length === 0) {
       const [insertResult] = await connection.query(`
-        INSERT INTO users (username, password, name, role, department) 
-        VALUES ('e22237', '1234', 'Minhaj Ali', 'Student', 'Department of Computer Engineering')
+        INSERT INTO users (username, password, name, role, department, email) 
+        VALUES ('e22237', '1234', 'Minhaj Ali', 'Student', 'Department of Computer Engineering', 'e22237@eng.pdn.ac.lk')
       `);
       
       const userId = insertResult.insertId;
@@ -147,6 +166,8 @@ async function setupDatabase() {
         ('EOE Hall - Engineering South', 'Tomorrow, 10:00 AM', 'Approved', 'science', ?, NULL, 'General Study'),
         ('DO1 - Drawing Office 1', 'Friday, 02:30 PM', 'Pending', 'corporate_fare', ?, 'Dr. Smith', 'Group Discussion')
       `, [userId, userId]);
+    } else {
+      await connection.query(`UPDATE users SET email = 'e22237@eng.pdn.ac.lk' WHERE username = 'e22237'`);
     }
 
     // Seed mock rooms
@@ -170,33 +191,41 @@ async function setupDatabase() {
     const [adminRows] = await connection.query(`SELECT * FROM users WHERE username = 'admin'`);
     if (adminRows.length === 0) {
       await connection.query(`
-        INSERT INTO users (username, password, name, role, department) 
-        VALUES ('admin', 'adminpass', 'System Administrator', 'maintenance_admin', 'Facilities Management')
+        INSERT INTO users (username, password, name, role, department, email) 
+        VALUES ('admin', 'adminpass', 'System Administrator', 'maintenance_admin', 'Facilities Management', 'minhaj.dssc1@gmail.com')
       `);
+    } else {
+      await connection.query(`UPDATE users SET email = 'minhaj.dssc1@gmail.com' WHERE username = 'admin'`);
     }
 
     const [bookAdminRows] = await connection.query(`SELECT * FROM users WHERE username = 'bookadmin'`);
     if (bookAdminRows.length === 0) {
       await connection.query(`
-        INSERT INTO users (username, password, name, role, department) 
-        VALUES ('bookadmin', 'adminpass', 'Booking Administrator', 'booking_admin', 'AR Office')
+        INSERT INTO users (username, password, name, role, department, email) 
+        VALUES ('bookadmin', 'adminpass', 'Booking Administrator', 'booking_admin', 'AR Office', 'minhaj.dssc3@gmail.com')
       `);
+    } else {
+      await connection.query(`UPDATE users SET email = 'minhaj.dssc3@gmail.com' WHERE username = 'bookadmin'`);
     }
 
     const [lecturerRows] = await connection.query(`SELECT * FROM users WHERE username = 'lecturer1'`);
     if (lecturerRows.length === 0) {
       await connection.query(`
-        INSERT INTO users (username, password, name, role, department) 
-        VALUES ('lecturer1', '1234', 'Dr. Smith', 'Lecturer', 'Department of Computer Engineering')
+        INSERT INTO users (username, password, name, role, department, email) 
+        VALUES ('lecturer1', '1234', 'Dr. Smith', 'Lecturer', 'Department of Computer Engineering', 'minhajchamodya@gmail.com')
       `);
+    } else {
+      await connection.query(`UPDATE users SET email = 'minhajchamodya@gmail.com' WHERE username = 'lecturer1'`);
     }
 
     const [alexRows] = await connection.query(`SELECT * FROM users WHERE username = 'alex'`);
     if (alexRows.length === 0) {
       await connection.query(`
-        INSERT INTO users (username, password, name, role, department) 
-        VALUES ('alex', '1234', 'Alex Johnson', 'Technician', 'Facilities Management')
+        INSERT INTO users (username, password, name, role, department, email) 
+        VALUES ('alex', '1234', 'Alex Johnson', 'Technician', 'Facilities Management', 'slminsgaming@gmail.com')
       `);
+    } else {
+      await connection.query(`UPDATE users SET email = 'slminsgaming@gmail.com' WHERE username = 'alex'`);
     }
 
     const [samRows] = await connection.query(`SELECT * FROM users WHERE username = 'sam'`);

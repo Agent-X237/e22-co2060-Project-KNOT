@@ -3,9 +3,74 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, MapPin, User, Check, Users, CheckCircle2,
   Camera, Save, RefreshCcw, UploadCloud, X, AlertTriangle,
-  Clock, Loader2, Shield, Eye
+  Clock, Loader2, Shield, Eye, Send, AlertCircle, FileText, Wrench
 } from 'lucide-react';
 import { CampusMap } from './Dashboard';
+
+const parseTimeToMinutes = (timeStr) => {
+  if (!timeStr) return null;
+  const str = String(timeStr).trim();
+
+  const matchColon = str.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+  if (matchColon) {
+    let hours = parseInt(matchColon[1], 10);
+    const mins = parseInt(matchColon[2], 10);
+    const period = matchColon[3];
+
+    if (period) {
+      if (period.toUpperCase() === 'PM' && hours < 12) hours += 12;
+      if (period.toUpperCase() === 'AM' && hours === 12) hours = 0;
+    } else if (hours < 7) {
+      hours += 12;
+    }
+    return hours * 60 + mins;
+  }
+
+  const matchHour = str.match(/^(\d{1,2})\s*(AM|PM)?$/i);
+  if (matchHour) {
+    let hours = parseInt(matchHour[1], 10);
+    const period = matchHour[2];
+    if (period) {
+      if (period.toUpperCase() === 'PM' && hours < 12) hours += 12;
+      if (period.toUpperCase() === 'AM' && hours === 12) hours = 0;
+    } else if (hours < 7) {
+      hours += 12;
+    }
+    return hours * 60;
+  }
+
+  return null;
+};
+
+const isTechnicianOnBreak = (tech) => {
+  if (!tech) return { isOnBreak: false };
+
+  const now = new Date();
+  const nowMins = now.getHours() * 60 + now.getMinutes();
+
+  const slots = Array.isArray(tech.break_slots) && tech.break_slots.length > 0
+    ? tech.break_slots
+    : [{ title: 'Break', start: tech.break_start || '12:30 PM', end: tech.break_end || '01:15 PM' }];
+
+  for (const slot of slots) {
+    const startMins = parseTimeToMinutes(slot.start);
+    const endMins = parseTimeToMinutes(slot.end);
+
+    if (startMins !== null && endMins !== null) {
+      if (startMins <= endMins) {
+        if (nowMins >= startMins && nowMins <= endMins) {
+          return { isOnBreak: true, activeSlot: slot };
+        }
+      } else {
+        if (nowMins >= startMins || nowMins <= endMins) {
+          return { isOnBreak: true, activeSlot: slot };
+        }
+      }
+    }
+  }
+
+  return { isOnBreak: false };
+};
 
 // Real World Map component using Leaflet
 function TicketMap({ locationString }) {
@@ -78,12 +143,14 @@ export default function TicketDetails() {
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState('');
   const [notes, setNotes] = useState('');
+  const [managerNotes, setManagerNotes] = useState('');
   const [technicians, setTechnicians] = useState([]);
   const [assignedTechId, setAssignedTechId] = useState('');
   const [uploadedPhotoBase64, setUploadedPhotoBase64] = useState(null);
   const [photoUploading, setPhotoUploading] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [adminVerified, setAdminVerified] = useState(false);
+  const [actionNotice, setActionNotice] = useState('');
   const photoInputRef = useRef(null);
 
   useEffect(() => {
@@ -98,6 +165,7 @@ export default function TicketDetails() {
       setTicket(data);
       setStatus(data.status);
       setNotes(data.maintenance_notes || '');
+      setManagerNotes(data.manager_notes || '');
       setAssignedTechId(data.assigned_technician_id || '');
       setUploadedPhotoBase64(null); // reset on reload
       setAdminVerified(data.admin_verified || false);
@@ -132,6 +200,39 @@ export default function TicketDetails() {
     reader.readAsDataURL(file);
   };
 
+  const handleTechnicianSelect = async (newTechId) => {
+    setAssignedTechId(newTechId);
+    setSaving(true);
+    setSaveSuccess(false);
+    try {
+      const targetTechId = newTechId === '' ? null : parseInt(newTechId, 10);
+      const newStatus = (targetTechId && status === 'Open') ? 'In Progress' : status;
+
+      const res = await fetch(`http://localhost:5003/api/tickets/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: newStatus,
+          assigned_technician_id: targetTechId,
+          maintenance_notes: notes,
+          manager_notes: managerNotes,
+          admin_verified: adminVerified
+        })
+      });
+      if (res.ok) {
+        if (newStatus !== status) setStatus(newStatus);
+        setSaveSuccess(true);
+        setActionNotice(targetTechId ? 'Duty technician assigned & notified via email!' : 'Technician assignment cleared.');
+        await fetchTicket();
+        setTimeout(() => { setSaveSuccess(false); setActionNotice(''); }, 2500);
+      }
+    } catch (err) {
+      console.error('Error saving technician assignment', err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleSave = async () => {
     setSaving(true);
     setSaveSuccess(false);
@@ -145,6 +246,7 @@ export default function TicketDetails() {
         body: JSON.stringify({
           status,
           maintenance_notes: notes,
+          manager_notes: managerNotes,
           assigned_technician_id: assignedTechId ? parseInt(assignedTechId, 10) : null,
           admin_verified: adminVerified,
           ...(photoToSave !== undefined && { photo_url: photoToSave }),
@@ -152,8 +254,9 @@ export default function TicketDetails() {
       });
       if (res.ok) {
         setSaveSuccess(true);
+        setActionNotice('Manager changes saved successfully!');
         await fetchTicket();
-        setTimeout(() => setSaveSuccess(false), 2500);
+        setTimeout(() => { setSaveSuccess(false); setActionNotice(''); }, 2500);
       }
     } catch (err) {
       console.error('Error saving ticket', err);
@@ -172,17 +275,52 @@ export default function TicketDetails() {
         body: JSON.stringify({
           status: 'Resolved',
           admin_verified: true,
+          manager_notes: managerNotes,
+          assigned_technician_id: assignedTechId ? parseInt(assignedTechId, 10) : null
         })
       });
       if (res.ok) {
         setAdminVerified(true);
         setStatus('Resolved');
         setSaveSuccess(true);
+        setActionNotice('Ticket confirmed & verified as solved!');
         await fetchTicket();
-        setTimeout(() => setSaveSuccess(false), 2500);
+        setTimeout(() => { setSaveSuccess(false); setActionNotice(''); }, 2500);
       }
     } catch (err) {
       console.error('Error verifying ticket', err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSendNextStep = async () => {
+    if (!managerNotes.trim()) {
+      alert("Please enter instructions in the 'Manager Guidance & Next Step' box before sending to technician.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await fetch(`http://localhost:5003/api/tickets/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'In Progress',
+          manager_notes: managerNotes,
+          admin_verified: false,
+          assigned_technician_id: assignedTechId ? parseInt(assignedTechId, 10) : null
+        })
+      });
+      if (res.ok) {
+        setStatus('In Progress');
+        setAdminVerified(false);
+        setSaveSuccess(true);
+        setActionNotice('Next resolving step sent to technician!');
+        await fetchTicket();
+        setTimeout(() => { setSaveSuccess(false); setActionNotice(''); }, 2500);
+      }
+    } catch (err) {
+      console.error('Error sending next resolving step', err);
     } finally {
       setSaving(false);
     }
@@ -214,49 +352,84 @@ export default function TicketDetails() {
   const steps = ['Open', 'In Progress', 'Resolved'];
   const currentStepIndex = steps.indexOf(status);
 
+  // Determine if initial work circle is complete (technician has submitted solvation notes/photo or ticket is resolved)
+  const isSolvationSubmitted = Boolean(
+    ticket.maintenance_notes || 
+    ticket.worker_photo || 
+    ticket.admin_verified || 
+    ticket.status === 'Resolved'
+  );
+
   const priorityStyle =
     ticket.priority === 'High' ? 'bg-red-500/20 text-red-400 border-red-500/30' :
     ticket.priority === 'Medium' ? 'bg-orange-500/20 text-orange-400 border-orange-500/30' :
     'bg-slate-700 text-slate-300 border-slate-600';
 
-  // The currently active photo for this ticket
-  const activePhoto = uploadedPhotoBase64 || ticket.photo_url;
-
   return (
-    <>
-      {/* Sticky Nav */}
-      <nav className="sticky top-0 z-50 bg-slate-900 border-b border-slate-800 px-4 py-4 flex items-center justify-between text-white shadow-xl">
-        <button className="flex items-center gap-2 hover:opacity-80 transition-opacity" onClick={() => navigate(-1)}>
+    <div className="bg-background-light min-h-screen flex flex-col w-full font-display">
+      <nav className="sticky top-0 z-50 bg-slate-900 border-b border-slate-800 px-4 py-4 flex items-center justify-between text-white shadow-md">
+        <button className="flex items-center gap-2 hover:opacity-80 transition-opacity" onClick={() => navigate('/')}>
           <ArrowLeft size={20} />
           <span className="font-bold">Ticket Details</span>
         </button>
-        <div className="flex items-center gap-2">
-          <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border ${priorityStyle}`}>
-            {ticket.priority} Priority
+        <div className="flex items-center gap-3">
+          <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${priorityStyle}`}>
+            {ticket.priority} PRIORITY
           </span>
         </div>
       </nav>
 
-      <main className="flex-1 max-w-2xl mx-auto w-full px-4 pt-6 pb-32">
+      <main className="flex-1 max-w-4xl mx-auto w-full px-4 pt-6 pb-24">
+        
+        {actionNotice && (
+          <div className="mb-4 bg-emerald-500 text-white font-bold p-3 rounded-xl text-center text-sm shadow-md animate-bounce">
+            ✓ {actionNotice}
+          </div>
+        )}
+
+        {/* Phase Banner */}
+        {!isSolvationSubmitted ? (
+          <div className="mb-6 bg-blue-50 border border-blue-200 rounded-2xl p-5 flex items-start gap-4 shadow-sm">
+            <div className="w-10 h-10 rounded-xl bg-blue-500 text-white flex items-center justify-center shrink-0 shadow-md">
+              <Wrench size={20} />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-blue-900">Initial Work Circle: Assign Duty Technician</h3>
+              <p className="text-xs text-blue-700 mt-1 leading-relaxed">
+                This maintenance request is in the initial stage. Please assign an available duty technician below to dispatch this task. Once the technician completes the work and submits their solvation proof, the Manager Review & Verification options will be unlocked.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="mb-6 bg-emerald-50 border border-emerald-200 rounded-2xl p-5 flex items-start gap-4 shadow-sm">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-md">
+              <CheckCircle2 size={20} />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-emerald-900">Technician Solvation Submitted for Manager Review</h3>
+              <p className="text-xs text-emerald-700 mt-1 leading-relaxed">
+                Technician <strong>{ticket.assigned_technician_name || 'duty technician'}</strong> has submitted work notes and solvation proof. Compare the Before & After results below and either confirm verification or send next step instructions.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Ticket Header */}
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-2 flex-wrap">
-            <span className="text-sm font-bold text-slate-500 bg-slate-200 px-2.5 py-0.5 rounded-lg uppercase">
-              #{ticket.ticket_number || ticket.id}
+            <span className="text-sm font-bold text-slate-500 bg-slate-200 px-2.5 py-0.5 rounded uppercase">
+              #{ticket.ticket_number || `TKT-${ticket.id}`}
             </span>
-            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400">
-              <Clock size={12} />
-              Reported <span className="text-primary ml-1">
-                {new Date(ticket.reported_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-              </span>
+            <div className="text-xs font-bold text-slate-400 uppercase">
+              Reported on <span className="text-primary">{new Date(ticket.reported_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
             </div>
+            {adminVerified && (
+              <span className="bg-emerald-500 text-white text-[10px] font-bold uppercase px-2 py-0.5 rounded flex items-center gap-1">
+                <Shield size={10} /> Verified by Admin
+              </span>
+            )}
           </div>
-          <h1 className="text-2xl font-bold leading-tight mt-1 text-slate-900">{ticket.title}</h1>
-          {ticket.description && (
-            <p className="text-sm text-slate-600 mt-3 bg-slate-50 p-4 rounded-2xl border border-slate-100 whitespace-pre-wrap leading-relaxed">
-              {ticket.description}
-            </p>
-          )}
+          <h1 className="text-2xl font-bold leading-tight text-slate-900 mt-1">{ticket.title}</h1>
         </div>
 
         {/* Info Cards */}
@@ -267,7 +440,7 @@ export default function TicketDetails() {
             </div>
             <div>
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Location</label>
-              <p className="text-sm font-bold text-slate-900 leading-snug mt-0.5">{ticket.location}</p>
+              <p className="text-sm font-bold text-slate-900 leading-snug mt-0.5 whitespace-pre-line">{ticket.location}</p>
             </div>
           </div>
           <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex flex-col gap-2">
@@ -290,181 +463,223 @@ export default function TicketDetails() {
           <TicketMap locationString={ticket.location} />
         </div>
 
-        {/* ─── REPORTER PHOTO SECTION ─── */}
+        {/* Initial Reported Issue Details */}
         <section className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6">
           <h2 className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">
-            <Camera size={15} className="text-primary" />
-            Issue Photo (Reporter Evidence)
+            <AlertCircle size={16} className="text-amber-500" />
+            Reported Issue Details & Photo
           </h2>
 
-          {activePhoto ? (
-            <div className="relative rounded-2xl overflow-hidden border border-slate-100 bg-slate-50">
-              <img
-                src={activePhoto}
-                alt="Reported issue"
-                className="w-full max-h-72 object-contain"
-              />
-              {uploadedPhotoBase64 && (
-                <div className="absolute top-2 right-2 flex gap-1.5">
-                  <span className="bg-primary text-white text-[10px] font-bold px-2 py-1 rounded-lg shadow">New Upload</span>
-                  <button
-                    onClick={() => { setUploadedPhotoBase64(null); if (photoInputRef.current) photoInputRef.current.value = ''; }}
-                    className="bg-red-500 text-white rounded-full p-1.5 shadow hover:bg-red-600 transition-colors"
-                  >
-                    <X size={13} />
-                  </button>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                <Camera size={12} /> Initial Photo (Reported Issue)
+              </span>
+              {ticket.photo_url ? (
+                <div className="h-48 rounded-xl border border-slate-200 bg-slate-900 overflow-hidden flex items-center justify-center">
+                  <img src={ticket.photo_url} alt="Reported Issue" className="max-h-full max-w-full object-contain" />
+                </div>
+              ) : (
+                <div className="h-48 flex items-center justify-center bg-slate-100 text-xs text-slate-400 font-semibold border border-slate-200 rounded-xl italic">
+                  No photo uploaded with initial report
                 </div>
               )}
             </div>
-          ) : (
-            <label className="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 rounded-2xl p-8 bg-slate-50 hover:bg-slate-100 cursor-pointer transition-colors group">
-              <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
-              {photoUploading ? (
-                <Loader2 size={28} className="text-primary animate-spin mb-2" />
-              ) : (
-                <>
-                  <UploadCloud size={28} className="text-slate-300 group-hover:text-primary mb-2 transition-colors" />
-                  <span className="text-sm font-semibold text-slate-500 group-hover:text-primary transition-colors">Attach Issue Photo</span>
-                  <span className="text-[11px] text-slate-400 mt-1">PNG, JPG up to 5MB</span>
-                </>
-              )}
-            </label>
-          )}
 
-          {/* Replace photo option when existing photo exists */}
-          {activePhoto && !uploadedPhotoBase64 && (
-            <label className="mt-3 flex items-center justify-center gap-2 py-2.5 border border-dashed border-slate-200 rounded-xl bg-slate-50 hover:bg-slate-100 cursor-pointer transition-colors text-xs font-bold text-slate-400 hover:text-primary">
-              <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
-              <Camera size={13} /> Replace / Update Photo
-            </label>
-          )}
-        </section>
-
-        {/* ─── TECHNICIAN ASSIGNMENT ─── */}
-        <section className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6">
-          <h2 className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">
-            <Users size={15} className="text-primary" />
-            Assign Technician
-          </h2>
-          <select
-            className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm text-slate-700 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium"
-            value={assignedTechId}
-            onChange={(e) => setAssignedTechId(e.target.value)}
-          >
-            <option value="">— Unassigned —</option>
-            {technicians.map(t => (
-              <option key={t.id} value={t.id}>{t.name} ({t.department || 'Facilities'})</option>
-            ))}
-          </select>
-          {ticket.assigned_technician_name && (
-            <div className="mt-3 flex items-center gap-2 text-sm font-semibold text-slate-600 bg-blue-50 border border-blue-100 rounded-xl px-3 py-2">
-              <Users size={14} className="text-primary" />
-              Currently: <span className="text-primary font-bold">{ticket.assigned_technician_name}</span>
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                <FileText size={12} /> Reported Description
+              </span>
+              <p className="text-xs text-slate-800 leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-200 font-medium h-48 overflow-y-auto">
+                {ticket.description || 'No initial description provided.'}
+              </p>
             </div>
-          )}
+          </div>
         </section>
 
-        {/* ─── WORKER COMPLETION EVIDENCE ─── */}
-        {ticket.worker_photo ? (
-          <section className="bg-white rounded-2xl shadow-sm border border-green-100 p-6 mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="flex items-center gap-2 text-xs font-bold text-green-600 uppercase tracking-wider">
-                <CheckCircle2 size={16} className="text-green-500" />
-                Work Completion Verification
-              </h2>
-              <span className="bg-green-600 text-white text-[9px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg flex items-center gap-1">
-                <Check size={9} strokeWidth={3} /> Submitted
+        {/* ─── TECHNICIAN ASSIGNMENT SECTION (PRIMARY IN INITIAL WORK CIRCLE) ─── */}
+        <section className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6">
+          <h2 className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
+            <Wrench size={16} className="text-primary" />
+            Assign Duty Technician
+          </h2>
+          <p className="text-xs text-slate-500 mb-4">
+            Select a qualified technician from the directory below to assign and dispatch this maintenance work order.
+          </p>
+          <select
+            value={assignedTechId}
+            onChange={(e) => handleTechnicianSelect(e.target.value)}
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-sm text-slate-800 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all font-medium mb-3"
+          >
+            <option value="">— Select Technician to Assign —</option>
+            {technicians.map(t => {
+              const breakCheck = isTechnicianOnBreak(t);
+              return (
+                <option key={t.id} value={t.id}>
+                  {t.name} ({t.department || 'Facilities Management'}) {breakCheck.isOnBreak ? `[☕ ON BREAK: ${breakCheck.activeSlot?.title || 'Break'}]` : '— ⚡ Active Shift'}
+                </option>
+              );
+            })}
+          </select>
+
+          {ticket.assigned_technician_name && (
+            <div className="flex items-center justify-between text-xs font-semibold text-slate-600 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
+              <span className="flex items-center gap-2 text-primary font-bold">
+                <Users size={16} /> Assigned Technician: {ticket.assigned_technician_name}
+              </span>
+              <span className="text-[10px] bg-blue-100 text-blue-700 font-bold px-2.5 py-1 rounded-md">
+                Active Technician
               </span>
             </div>
+          )}
+        </section>
 
-            {/* Before / After Grid */}
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <div className="flex flex-col gap-2">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                  <Eye size={11} /> Before (Reported)
-                </span>
-                {ticket.photo_url ? (
-                  <div className="h-44 rounded-xl border border-slate-100 bg-slate-50 overflow-hidden">
-                    <img src={ticket.photo_url} alt="Before" className="h-full w-full object-cover" />
-                  </div>
-                ) : (
-                  <div className="h-44 flex items-center justify-center bg-slate-50 text-xs text-slate-400 font-semibold border border-slate-100 rounded-xl">
-                    No issue photo
-                  </div>
-                )}
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <span className="text-[10px] font-bold text-green-500 uppercase tracking-wider flex items-center gap-1">
-                  <CheckCircle2 size={11} /> After (Completed)
-                </span>
-                <div className="h-44 rounded-xl border-2 border-green-200 bg-slate-50 overflow-hidden shadow-sm">
-                  <img src={ticket.worker_photo} alt="After" className="h-full w-full object-cover" />
-                </div>
-              </div>
-            </div>
-
-            {/* Worker Info Banner */}
-            <div className="bg-green-50 border border-green-100 rounded-xl p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <span className="text-[10px] text-green-600 font-bold uppercase tracking-wider block">Resolution Worker</span>
-                  <p className="text-sm font-bold text-slate-800 mt-0.5">
-                    {ticket.assigned_technician_name || 'Assigned Technician'}
-                  </p>
-                </div>
+        {/* ─── SECOND STAGE: TECHNICIAN SOLVATION REVIEW & MANAGER VERIFICATION ─── */}
+        {isSolvationSubmitted ? (
+          <>
+            {/* Side-by-side comparison */}
+            <section className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6">
+              <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3 flex-wrap gap-2">
+                <h2 className="flex items-center gap-2 text-sm font-bold text-slate-900 uppercase tracking-wider">
+                  <Eye size={18} className="text-primary" />
+                  Before & After Resolution Comparison
+                </h2>
                 {adminVerified ? (
-                  <div className="bg-green-600 text-white text-[9px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg flex items-center gap-1 shrink-0">
-                    <Shield size={9} /> Verified by Admin
-                  </div>
+                  <span className="bg-emerald-600 text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg flex items-center gap-1">
+                    <Shield size={12} /> Work Verified & Confirmed
+                  </span>
                 ) : (
-                  <div className="bg-amber-500 text-white text-[9px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg flex items-center gap-1 shrink-0">
-                    <Clock size={9} /> Awaiting Verification
-                  </div>
+                  <span className="bg-amber-500 text-white text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg flex items-center gap-1">
+                    <Clock size={12} /> Pending Manager Verification
+                  </span>
                 )}
               </div>
 
-              {ticket.maintenance_notes && (
-                <div className="mt-3 pt-3 border-t border-green-100">
-                  <span className="text-[10px] text-green-600 font-bold uppercase tracking-wider block mb-1.5">Worker Notes</span>
-                  <p className="text-xs text-slate-700 leading-relaxed bg-white border border-slate-100 p-3 rounded-lg italic">
-                    "{ticket.maintenance_notes}"
-                  </p>
-                </div>
-              )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Column 1: Before Solved */}
+                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 flex flex-col gap-3">
+                  <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                      <AlertCircle size={14} className="text-amber-500" />
+                      BEFORE SOLVED (Initial Request)
+                    </span>
+                    <span className="text-[10px] bg-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded">
+                      Reported Issue
+                    </span>
+                  </div>
 
-              {!adminVerified && (
-                <div className="mt-4 pt-4 border-t border-green-100 flex justify-end">
-                  <button
-                    onClick={handleVerifyCompletion}
-                    disabled={saving}
-                    className="bg-green-600 hover:bg-green-700 text-white text-xs font-bold py-2.5 px-4 rounded-xl shadow-md transition-all flex items-center gap-1.5 hover:scale-[1.02] active:scale-100"
-                  >
-                    {saving ? (
-                      <><Loader2 size={13} className="animate-spin" /> Verifying...</>
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                      <Camera size={12} /> Initial Photo (Before Solved)
+                    </span>
+                    {ticket.photo_url ? (
+                      <div className="h-48 rounded-xl border border-slate-200 bg-slate-900 overflow-hidden flex items-center justify-center">
+                        <img src={ticket.photo_url} alt="Before Solved" className="max-h-full max-w-full object-contain" />
+                      </div>
                     ) : (
-                      <><CheckCircle2 size={13} /> Verify Completion</>
+                      <div className="h-48 flex items-center justify-center bg-slate-100 text-xs text-slate-400 font-semibold border border-slate-200 rounded-xl italic">
+                        No photo uploaded with initial report
+                      </div>
                     )}
-                  </button>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5 mt-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                      <FileText size={12} /> Initial Note (Before Solved)
+                    </span>
+                    <p className="text-xs text-slate-800 leading-relaxed bg-white p-3 rounded-lg border border-slate-200 font-medium min-h-[70px]">
+                      {ticket.description || 'No initial description provided.'}
+                    </p>
+                  </div>
                 </div>
-              )}
-            </div>
-          </section>
-        ) : (
-          /* Pending verification placeholder */
-          ticket.status !== 'Open' && (
-            <section className="bg-amber-50 border border-amber-100 rounded-2xl p-5 mb-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
-                  <Camera size={18} className="text-amber-600" />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-amber-800">Awaiting Worker Photo</p>
-                  <p className="text-xs text-amber-600 mt-0.5">The assigned technician hasn't uploaded a completion photo yet.</p>
+
+                {/* Column 2: After Solved */}
+                <div className="bg-emerald-50/60 rounded-xl p-4 border border-emerald-200 flex flex-col gap-3">
+                  <div className="flex items-center justify-between border-b border-emerald-200 pb-2">
+                    <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider flex items-center gap-1.5">
+                      <CheckCircle2 size={14} className="text-emerald-500" />
+                      AFTER SOLVED (Technician Solvation)
+                    </span>
+                    <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">
+                      Resolved Proof
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider flex items-center gap-1">
+                      <Camera size={12} /> Resolved Photo (After Solved)
+                    </span>
+                    {ticket.worker_photo ? (
+                      <div className="h-48 rounded-xl border-2 border-emerald-400 bg-slate-900 overflow-hidden flex items-center justify-center shadow-sm">
+                        <img src={ticket.worker_photo} alt="After Solved" className="max-h-full max-w-full object-contain" />
+                      </div>
+                    ) : (
+                      <div className="h-48 flex items-center justify-center bg-emerald-50/50 text-xs text-slate-400 font-semibold border border-dashed border-emerald-300 rounded-xl italic">
+                        No technician resolved photo uploaded
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col gap-1.5 mt-1">
+                    <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider flex items-center gap-1">
+                      <FileText size={12} /> Resolved Note (After Solved)
+                    </span>
+                    <p className="text-xs text-slate-800 leading-relaxed bg-white p-3 rounded-lg border border-emerald-200 font-mono min-h-[70px]">
+                      {ticket.maintenance_notes || 'No technician work notes logged yet.'}
+                    </p>
+                  </div>
                 </div>
               </div>
             </section>
-          )
+
+            {/* Manager Evaluation & Action Controls */}
+            <section className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6">
+              <h2 className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
+                <Wrench size={16} className="text-primary" />
+                Manager Review & Verification Options
+              </h2>
+              
+              <p className="text-xs text-slate-500 mb-3">
+                Enter manager instructions or feedback below. Confirm & verify the task as completed, or send next step instructions back to the technician if further work is required.
+              </p>
+
+              <textarea 
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm text-slate-800 min-h-[100px] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-slate-400 resize-y mb-4"
+                value={managerNotes}
+                onChange={(e) => setManagerNotes(e.target.value)}
+                placeholder="Type manager feedback or next resolving step instructions for the technician here..."
+              />
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  onClick={handleVerifyCompletion}
+                  disabled={saving}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 transition-all disabled:opacity-50"
+                >
+                  <Shield size={16} />
+                  {saving ? 'Processing...' : '✓ Confirm & Verify Resolved'}
+                </button>
+
+                <button
+                  onClick={handleSendNextStep}
+                  disabled={saving}
+                  className="bg-amber-600 hover:bg-amber-700 text-white font-bold py-3.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 shadow-md shadow-amber-600/20 transition-all disabled:opacity-50"
+                >
+                  <Send size={16} />
+                  {saving ? 'Sending...' : '💬 Send Next Resolving Step'}
+                </button>
+              </div>
+            </section>
+          </>
+        ) : (
+          /* Locked State Banner when technician hasn't submitted solvation yet */
+          <div className="bg-slate-50 border border-dashed border-slate-300 rounded-2xl p-6 mb-6 text-center text-slate-500">
+            <Shield size={28} className="mx-auto text-slate-400 mb-2" />
+            <h4 className="font-bold text-sm text-slate-700">Manager Verification Controls Locked</h4>
+            <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto leading-relaxed">
+              Options to <strong>Confirm & Verify Resolved</strong> or <strong>Send Next Resolving Step</strong> will activate here automatically once the assigned technician completes work and submits their solvation proof.
+            </p>
+          </div>
         )}
 
         {/* ─── STATUS TRACKER ─── */}
@@ -519,22 +734,6 @@ export default function TicketDetails() {
           </div>
         </section>
 
-        {/* ─── MAINTENANCE NOTES ─── */}
-        <section className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6">
-          <h2 className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-            </svg>
-            Admin Notes
-          </h2>
-          <textarea
-            className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm text-slate-700 min-h-[120px] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-slate-400 resize-y"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Add notes about the maintenance performed..."
-          />
-        </section>
-
         {/* Save Button */}
         <button
           className={`w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg transition-all ${
@@ -550,10 +749,10 @@ export default function TicketDetails() {
           ) : saveSuccess ? (
             <><CheckCircle2 size={20} /> Changes Saved!</>
           ) : (
-            <><Save size={20} /> Save Changes</>
+            <><Save size={20} /> {!isSolvationSubmitted ? 'Save & Assign Technician' : 'Save Changes'}</>
           )}
         </button>
       </main>
-    </>
+    </div>
   );
 }

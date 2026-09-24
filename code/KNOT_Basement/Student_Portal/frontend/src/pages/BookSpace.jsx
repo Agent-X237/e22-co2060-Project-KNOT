@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import BookingVerificationBanner from '../components/BookingVerificationBanner';
 
 const getRoomDetails = (room) => {
   if (!room) return null;
@@ -52,8 +53,12 @@ const getRoomDetails = (room) => {
 
 export default function BookSpace() {
   const today = new Date().toISOString().split('T')[0];
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const initialParam = location.state?.roomId || location.state?.selectedRoomId || location.state?.roomName || searchParams.get('roomId') || searchParams.get('room') || '';
+
   const [rooms, setRooms] = useState([]);
-  const [selectedRoomId, setSelectedRoomId] = useState('');
+  const [selectedRoomId, setSelectedRoomId] = useState(initialParam ? String(initialParam) : '');
   const [date, setDate] = useState(today);
   const [purpose, setPurpose] = useState('');
   const [lecturer, setLecturer] = useState('');
@@ -70,7 +75,12 @@ export default function BookSpace() {
   const [selectedEnd, setSelectedEnd] = useState(null);
 
   // Derived Selections
-  const selectedRoom = rooms.find(r => r.id.toString() === selectedRoomId);
+  const selectedRoom = rooms.find(r => 
+    String(r.id) === String(selectedRoomId) || 
+    r.name.toLowerCase() === String(selectedRoomId).toLowerCase() ||
+    r.name.toLowerCase().includes(String(selectedRoomId).toLowerCase())
+  ) || (rooms.length > 0 ? rooms[0] : null);
+
   const loc = getRoomDetails(selectedRoom);
 
   const formatTime = (val) => {
@@ -92,9 +102,23 @@ export default function BookSpace() {
     // Fetch rooms dynamically
     axios.get('http://localhost:5001/api/rooms')
       .then(res => {
-        setRooms(res.data);
-        if (res.data.length > 0) {
-          setSelectedRoomId(res.data[0].id.toString());
+        const fetchedRooms = res.data;
+        setRooms(fetchedRooms);
+        if (fetchedRooms.length > 0) {
+          // If a parameter was passed or user had a selection, match it
+          let matched = null;
+          if (initialParam) {
+            matched = fetchedRooms.find(r => 
+              String(r.id) === String(initialParam) || 
+              r.name.toLowerCase() === String(initialParam).toLowerCase() ||
+              r.name.toLowerCase().includes(String(initialParam).toLowerCase())
+            );
+          }
+          if (matched) {
+            setSelectedRoomId(String(matched.id));
+          } else if (!selectedRoomId) {
+            setSelectedRoomId(String(fetchedRooms[0].id));
+          }
         }
       })
       .catch(err => {
@@ -295,10 +319,10 @@ export default function BookSpace() {
       const bookingType = user?.role === 'Lecturer' ? 'Lecture' : 'AR Office';
 
       await axios.post('http://localhost:5001/api/bookings', {
-        title: loc.title,
+        title: selectedRoom ? selectedRoom.name : loc.title,
         time_display: `${date} ${formatTime(selectedStart)} - ${formatTime(selectedEnd)}`,
         user_id: user.id,
-        icon: loc.icon,
+        icon: loc ? loc.icon : 'meeting_room',
         status: user?.role === 'Lecturer' ? 'Pending AR' : 'Pending',
         end_time: end_time,
         assigned_lecturer: user?.role === 'Lecturer' ? null : lecturer,
@@ -331,13 +355,25 @@ export default function BookSpace() {
         <h2 className="text-2xl font-bold mb-1">Book a Space</h2>
         <p className="text-sm text-slate-500 mb-4">Find halls, labs, and study rooms across campus.</p>
 
+        <BookingVerificationBanner user={user} onActionComplete={() => {
+          axios.get('http://localhost:5001/api/schedule/all').then(res => setExistingBookings(res.data));
+        }} />
+
         {rooms.length > 0 && (
           <div className="bg-white border-b border-slate-100 rounded-xl shadow-sm mb-4">
               <div className="relative">
                   <span className="material-symbols-outlined absolute left-3 top-3.5 text-primary pointer-events-none">location_on</span>
-                  <select value={selectedRoomId} onChange={(e) => setSelectedRoomId(e.target.value)} className="w-full border border-slate-200 bg-white rounded-xl py-3.5 pl-10 pr-10 appearance-none text-sm text-slate-700 font-bold focus:border-primary shadow-sm focus:bg-white transition-colors">
+                  <select 
+                    value={selectedRoomId} 
+                    onChange={(e) => {
+                      setSelectedRoomId(e.target.value);
+                      setSelectedStart(null);
+                      setSelectedEnd(null);
+                    }} 
+                    className="w-full border border-slate-200 bg-white rounded-xl py-3.5 pl-10 pr-10 appearance-none text-sm text-slate-700 font-bold focus:border-primary shadow-sm focus:bg-white transition-colors cursor-pointer"
+                  >
                       {rooms.map(r => (
-                          <option key={r.id} value={r.id.toString()}>{r.name}</option>
+                          <option key={r.id} value={r.id.toString()}>{r.name} ({r.type})</option>
                       ))}
                   </select>
                   <span className="material-symbols-outlined absolute right-4 top-3.5 text-slate-400 pointer-events-none">expand_more</span>

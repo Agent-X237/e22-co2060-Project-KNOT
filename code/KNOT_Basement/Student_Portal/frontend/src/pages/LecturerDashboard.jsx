@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import TimetableCalendar from '../components/TimetableCalendar';
+import BookingVerificationBanner from '../components/BookingVerificationBanner';
 
 export default function LecturerDashboard() {
   const [faults, setFaults] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [studentRequests, setStudentRequests] = useState([]);
   
+  const [rooms, setRooms] = useState([]);
   const [showAllBookings, setShowAllBookings] = useState(false);
   const [showAllFaults, setShowAllFaults] = useState(false);
   const [showAllRequests, setShowAllRequests] = useState(false);
@@ -30,14 +32,16 @@ export default function LecturerDashboard() {
 
   const fetchData = async () => {
     try {
-      const [faultsRes, bookingsRes, requestsRes] = await Promise.all([
+      const [faultsRes, bookingsRes, requestsRes, roomsRes] = await Promise.all([
         axios.get('http://localhost:5001/api/faults/' + user?.id),
         axios.get('http://localhost:5001/api/bookings/' + user?.id),
-        axios.get('http://localhost:5001/api/lecturer/requests/' + user?.id)
+        axios.get('http://localhost:5001/api/lecturer/requests/' + user?.id),
+        axios.get('http://localhost:5001/api/rooms')
       ]);
       setFaults(faultsRes.data);
       setBookings(bookingsRes.data);
       setStudentRequests(requestsRes.data);
+      setRooms(roomsRes.data);
     } catch (err) {
       console.error("Error fetching data:", err);
     }
@@ -81,9 +85,9 @@ export default function LecturerDashboard() {
              <button onClick={handleLogout} className="p-2 text-red-400 rounded-full hover:bg-slate-800 transition-colors">
                <span className="material-symbols-outlined">logout</span>
              </button>
-             <div className="w-10 h-10 rounded-full bg-primary/20 border border-primary/30 text-primary flex items-center justify-center font-bold text-base transition-opacity">
+             <button onClick={() => navigate('/profile')} className="w-10 h-10 rounded-full bg-primary/20 border border-primary/30 text-primary flex items-center justify-center font-bold text-base hover:opacity-80 transition-opacity" title="My Profile">
                  {user.name.charAt(0)}
-             </div>
+             </button>
           </div>
         </div>
       </header>
@@ -93,6 +97,9 @@ export default function LecturerDashboard() {
           <h2 className="text-2xl font-bold">Hello, {user.name}</h2>
           <p className="text-slate-500">{user.department}</p>
         </section>
+
+        {/* 2-Step Verification Banner */}
+        <BookingVerificationBanner user={user} onActionComplete={fetchData} />
 
         {/* Quick Actions */}
         <section className="mb-8">
@@ -110,6 +117,38 @@ export default function LecturerDashboard() {
             </button>
           </div>
         </section>
+
+        {/* Campus Halls Quick Booking Selection */}
+        {rooms.length > 0 && (
+          <section className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold">Select Hall to Book</h3>
+              <button onClick={() => navigate('/book-space')} className="text-primary text-sm font-bold hover:underline">
+                View All ({rooms.length})
+              </button>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+              {rooms.slice(0, 5).map(room => (
+                <div 
+                  key={room.id}
+                  onClick={() => navigate('/book-space', { state: { roomId: room.id, roomName: room.name } })}
+                  className="bg-white border border-slate-200 p-3 rounded-xl hover:border-primary cursor-pointer transition-all flex flex-col justify-between shadow-sm group"
+                >
+                  <div>
+                    <span className="material-symbols-outlined text-primary group-hover:scale-110 transition-transform font-variation-fill">
+                      {room.type === 'Lab' ? 'science' : room.type === 'Drawing Office' ? 'architecture' : 'school'}
+                    </span>
+                    <h4 className="font-bold text-xs mt-2 line-clamp-1 group-hover:text-primary transition-colors" title={room.name}>{room.name}</h4>
+                    <p className="text-[10px] text-slate-500 mt-0.5">{room.type} • {room.capacity} Cap</p>
+                  </div>
+                  <button className="mt-3 w-full py-1 text-[10px] font-bold bg-slate-100 text-slate-700 group-hover:bg-primary group-hover:text-white rounded-lg transition-colors">
+                    Book Resource
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Student Endorsement Requests */}
         <section className="mb-8">

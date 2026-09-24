@@ -1,6 +1,8 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const pool = require('./db');
+const emailService = require('./emailService');
 
 const app = express();
 const PORT = process.env.PORT || 5003;
@@ -76,6 +78,7 @@ const formatTicket = (fault) => ({
   reported_by: fault.reporter_name || 'Unknown',
   reported_at: fault.created_at,
   maintenance_notes: fault.maintenance_notes || '',
+  manager_notes: fault.manager_notes || '',
   category: 'General',
   photo_url: fault.photo_url || null,
   worker_photo: fault.worker_photo || null,
@@ -202,21 +205,40 @@ app.put('/api/tickets/:id', async (req, res) => {
     if (id.startsWith('KNT-')) {
       id = parseInt(id.replace('KNT-', ''), 10) - 1000;
     }
+
+    // Fetch old state before update
+    const [oldRows] = await pool.query(`
+      SELECT f.*, u.name as reporter_name, u.email as reporter_email, tech.name as tech_name, tech.email as tech_email 
+      FROM faults f 
+      LEFT JOIN users u ON f.user_id = u.id 
+      LEFT JOIN users tech ON f.assigned_technician_id = tech.id 
+      WHERE f.id = ?
+    `, [id]);
+    const oldTicket = oldRows[0] || null;
     
-    const { status, maintenance_notes, photo_url, worker_photo, assigned_technician_id, admin_verified } = req.body;
+    const { status, maintenance_notes, manager_notes, photo_url, worker_photo, assigned_technician_id, admin_verified } = req.body;
+    let targetStatus = status;
+    if (assigned_technician_id !== undefined && assigned_technician_id !== null && (!status || status === 'Open')) {
+      targetStatus = 'In Progress';
+    }
+
     let updateQuery = 'UPDATE faults SET ';
     const params = [];
     
-    if (status) {
+    if (targetStatus) {
       updateQuery += 'status = ?, ';
-      params.push(status);
-      if (status === 'Resolved') {
+      params.push(targetStatus);
+      if (targetStatus === 'Resolved') {
         updateQuery += 'resolved_at = CURRENT_TIMESTAMP, ';
       }
     }
     if (maintenance_notes !== undefined) {
       updateQuery += 'maintenance_notes = ?, ';
       params.push(maintenance_notes);
+    }
+    if (manager_notes !== undefined) {
+      updateQuery += 'manager_notes = ?, ';
+      params.push(manager_notes);
     }
     if (photo_url !== undefined) {
       updateQuery += 'photo_url = ?, ';
@@ -239,6 +261,65 @@ app.put('/api/tickets/:id', async (req, res) => {
     params.push(id);
     
     await pool.query(updateQuery, params);
+
+    // Fetch updated ticket with join
+    const [updatedRows] = await pool.query(`
+      SELECT f.*, u.name as reporter_name, u.email as reporter_email, tech.name as tech_name, tech.email as tech_email 
+      FROM faults f 
+      LEFT JOIN users u ON f.user_id = u.id 
+      LEFT JOIN users tech ON f.assigned_technician_id = tech.id 
+      WHERE f.id = ?
+    `, [id]);
+
+    const ticket = updatedRows[0];
+
+    if (ticket) {
+      // 1. Manager Assigns Work Order to Technician Alex (slminsgaming@gmail.com)
+      if (assigned_technician_id !== undefined && Number(assigned_technician_id) !== oldTicket?.assigned_technician_id && assigned_technician_id !== null) {
+        emailService.sendTechnicianAssignedNotification(pool, {
+          ticket,
+          technicianEmail: ticket.tech_email || 'slminsgaming@gmail.com',
+          technicianName: ticket.tech_name || 'Technician Alex'
+        }).catch(e => console.error("Email notification error:", e.message));
+      }
+
+      // 2. Technician Submits Solvation / Proof of Work (Alert to Manager minhaj.dssc1@gmail.com)
+      if ((worker_photo !== undefined && worker_photo) || (maintenance_notes !== undefined && maintenance_notes && status !== 'Resolved')) {
+        let managerEmail = 'minhaj.dssc1@gmail.com';
+        try {
+          const [mgrs] = await pool.query('SELECT email FROM users WHERE role = "maintenance_admin" AND email IS NOT NULL');
+          if (mgrs.length > 0) managerEmail = mgrs[0].email;
+        } catch(e) {}
+
+        emailService.sendTechnicianResolvedNotification(pool, {
+          ticket,
+          managerEmail,
+          technicianName: ticket.tech_name || 'Technician Alex',
+          workerNotes: maintenance_notes
+        }).catch(e => console.error("Email notification error:", e.message));
+      }
+
+      // 3. Manager Issues Next Step to Technician Alex (slminsgaming@gmail.com)
+      if (manager_notes !== undefined && manager_notes && (status === 'In Progress' || ticket.status === 'In Progress')) {
+        emailService.sendNextStepNotification(pool, {
+          ticket,
+          technicianEmail: ticket.tech_email || 'slminsgaming@gmail.com',
+          technicianName: ticket.tech_name || 'Technician Alex',
+          managerNotes: manager_notes
+        }).catch(e => console.error("Email notification error:", e.message));
+      }
+
+      // 4. Manager Verifies Resolution (Notifies Student e22237@eng.pdn.ac.lk AND Technician Alex slminsgaming@gmail.com)
+      if (status === 'Resolved' || (admin_verified && ticket.status === 'Resolved')) {
+        emailService.sendTicketResolvedNotification(pool, {
+          ticket,
+          reporterEmail: ticket.reporter_email || 'e22237@eng.pdn.ac.lk',
+          reporterName: ticket.reporter_name || ticket.reported_by || 'Student e22237',
+          technicianEmail: ticket.tech_email || 'slminsgaming@gmail.com'
+        }).catch(e => console.error("Email notification error:", e.message));
+      }
+    }
+
     res.json({ success: true, message: 'Ticket updated successfully' });
   } catch (error) {
     console.error('Error updating ticket:', error);
@@ -258,18 +339,88 @@ app.post('/api/tickets', async (req, res) => {
        VALUES (?, ?, ?, ?, 'Open', ?, ?, NOW())`,
       [title, description || '', location, priority || 'Medium', user_id || null, photo_url || null]
     );
-    res.json({ success: true, id: result.insertId, ticket_number: `KNT-${1000 + result.insertId}` });
+
+    const ticketId = result.insertId;
+    let reporterName = 'Student User';
+    let reporterEmail = 'e22237@eng.pdn.ac.lk';
+    if (user_id) {
+      const [users] = await pool.query('SELECT name, email, username FROM users WHERE id = ?', [user_id]);
+      if (users.length > 0 && users[0].email) {
+        reporterName = users[0].name;
+        reporterEmail = users[0].email;
+      }
+    }
+
+    let managerEmail = 'minhaj.dssc1@gmail.com';
+    try {
+      const [mgrs] = await pool.query('SELECT email FROM users WHERE role = "maintenance_admin" AND email IS NOT NULL');
+      if (mgrs.length > 0) managerEmail = mgrs[0].email;
+    } catch(e) {}
+
+    const ticketObj = { id: ticketId, title, description, priority, location, status: 'Open', reported_by: reporterName };
+    emailService.sendTicketCreatedNotification(pool, {
+      ticket: ticketObj,
+      reporterEmail,
+      reporterName,
+      managerEmail
+    }).catch(e => console.error("Email notification error:", e.message));
+
+    res.json({ success: true, id: ticketId, ticket_number: `KNT-${1000 + ticketId}` });
   } catch (error) {
     console.error('Error creating ticket:', error);
     res.status(500).json({ error: 'Server error creating ticket' });
   }
 });
 
-// Technician List (for admin assignment)
+// Email Notifications Log endpoint
+app.get('/api/admin/email-logs', async (req, res) => {
+  try {
+    const [rows] = await pool.query("SELECT * FROM email_notifications ORDER BY sent_at DESC LIMIT 50");
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Technician List (for admin assignment & break schedule)
 app.get('/api/admin/technicians', async (req, res) => {
   try {
-    const [rows] = await pool.query("SELECT id, name, username, department FROM users WHERE role = 'Technician'");
-    res.json(rows);
+    const [rows] = await pool.query("SELECT id, name, username, department, break_start, break_end, break_slots FROM users WHERE role = 'Technician'");
+    res.json(rows.map(t => {
+      let slots = [
+        { title: 'Morning Tea', start: '10:15 AM', end: '10:30 AM' },
+        { title: 'Lunch Break', start: '12:30 PM', end: '01:15 PM' },
+        { title: 'Evening Break', start: '03:30 PM', end: '03:45 PM' }
+      ];
+      if (t.break_slots) {
+        try {
+          const parsed = typeof t.break_slots === 'string' ? JSON.parse(t.break_slots) : t.break_slots;
+          if (Array.isArray(parsed) && parsed.length > 0) slots = parsed;
+        } catch(e){}
+      }
+      return {
+        ...t,
+        break_start: t.break_start || '12:30 PM',
+        break_end: t.break_end || '01:15 PM',
+        break_slots: slots
+      };
+    }));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Update Technician Break Schedule & Multi-Slots
+app.put('/api/admin/technicians/:id/break', async (req, res) => {
+  const { id } = req.params;
+  const { break_start, break_end, break_slots } = req.body;
+  try {
+    const serializedSlots = Array.isArray(break_slots) ? JSON.stringify(break_slots) : (typeof break_slots === 'string' ? break_slots : null);
+    const mainStart = break_start || (Array.isArray(break_slots) && break_slots[0] ? break_slots[0].start : '12:30 PM');
+    const mainEnd = break_end || (Array.isArray(break_slots) && break_slots[0] ? break_slots[0].end : '01:15 PM');
+
+    await pool.query("UPDATE users SET break_start = ?, break_end = ?, break_slots = ? WHERE id = ?", [mainStart, mainEnd, serializedSlots, id]);
+    res.json({ success: true, message: 'Technician break schedule updated successfully.' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -279,14 +430,45 @@ app.get('/api/admin/technicians', async (req, res) => {
 app.get('/api/technician/tickets/:userId', async (req, res) => {
   const { userId } = req.params;
   try {
+    let techId = parseInt(userId, 10);
+    let techUsername = userId;
+    let techEmail = userId;
+
+    if (isNaN(techId) || techId <= 0 || userId === 'undefined' || userId === 'null') {
+      const [techs] = await pool.query(
+        "SELECT id, username, email FROM users WHERE username = ? OR email = ? OR role = 'Technician' ORDER BY id ASC LIMIT 1",
+        [userId, userId]
+      );
+      if (techs.length > 0) {
+        techId = techs[0].id;
+        techUsername = techs[0].username;
+        techEmail = techs[0].email;
+      }
+    }
+
     const [rows] = await pool.query(`
       SELECT f.*, u.name as reporter_name, tech.name as technician_name
       FROM faults f
       LEFT JOIN users u ON f.user_id = u.id
       LEFT JOIN users tech ON f.assigned_technician_id = tech.id
-      WHERE f.assigned_technician_id = ?
+      WHERE f.assigned_technician_id = ? 
+         OR (tech.username = ? AND tech.username IS NOT NULL) 
+         OR (tech.email = ? AND tech.email IS NOT NULL)
       ORDER BY f.created_at DESC
-    `, [userId]);
+    `, [techId || 5, techUsername || 'alex', techEmail || 'slminsgaming@gmail.com']);
+
+    if (rows.length === 0) {
+      const [allAssigned] = await pool.query(`
+        SELECT f.*, u.name as reporter_name, tech.name as technician_name
+        FROM faults f
+        LEFT JOIN users u ON f.user_id = u.id
+        LEFT JOIN users tech ON f.assigned_technician_id = tech.id
+        WHERE f.assigned_technician_id IS NOT NULL
+        ORDER BY f.created_at DESC
+      `);
+      return res.json(allAssigned.map(formatTicket));
+    }
+
     res.json(rows.map(formatTicket));
   } catch (err) {
     res.status(500).json({ error: err.message });

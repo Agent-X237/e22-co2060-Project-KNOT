@@ -4,7 +4,7 @@ import {
   Bell, User, Filter, ChevronLeft, ChevronRight,
   ClipboardList, RefreshCcw, CheckCircle2, Plus, X,
   MapPin, Camera, AlertTriangle, UploadCloud, Loader2,
-  Search, LogOut
+  Search, LogOut, Mail
 } from 'lucide-react';
 
 // Comprehensive KNOT campus location list for autocomplete
@@ -516,7 +516,32 @@ export default function Dashboard() {
   const [currentPage, setCurrentPage] = useState(1);
   const LIMIT = 6;
 
+  // Email Notification Logs State
+  const [emailLogsModalOpen, setEmailLogsModalOpen] = useState(false);
+  const [emailLogs, setEmailLogs] = useState([]);
+  const [loadingEmailLogs, setLoadingEmailLogs] = useState(false);
+
   const adminName = localStorage.getItem('admin_name') || 'Admin';
+
+  const fetchEmailLogs = async () => {
+    setLoadingEmailLogs(true);
+    try {
+      const res = await fetch('http://localhost:5003/api/admin/email-logs');
+      if (res.ok) {
+        const data = await res.json();
+        setEmailLogs(data);
+      }
+    } catch (err) {
+      console.error("Error fetching email logs:", err);
+    } finally {
+      setLoadingEmailLogs(false);
+    }
+  };
+
+  const openEmailLogsModal = () => {
+    fetchEmailLogs();
+    setEmailLogsModalOpen(true);
+  };
 
   useEffect(() => {
     fetchData(currentPage);
@@ -572,6 +597,23 @@ export default function Dashboard() {
 
   const totalPages = pagination ? Math.ceil(pagination.total / LIMIT) : 1;
 
+  const formatLocationForDashboard = (loc) => {
+    if (!loc) return 'Unspecified Location';
+    let clean = String(loc).split('\n')[0].trim();
+    clean = clean.replace(/Map Coordinates:.*$/i, '').trim();
+    if (/^Map Coordinates:/i.test(clean)) {
+      return 'Pinned Map Location';
+    }
+    clean = clean.replace(/[,-\s]+$/, '').trim();
+    if (clean.length > 45 && clean.includes(',')) {
+      const parts = clean.split(',').map(s => s.trim()).filter(Boolean);
+      if (parts.length > 2) {
+        clean = parts.slice(0, 2).join(', ');
+      }
+    }
+    return clean || 'Unspecified Location';
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background-light flex items-center justify-center">
@@ -592,6 +634,52 @@ export default function Dashboard() {
         />
       )}
 
+      {showProfileModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-lg p-6 shadow-2xl border border-slate-100 flex flex-col gap-5">
+            <div className="flex justify-between items-center border-b pb-3">
+              <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                <User size={18} className="text-primary" /> User Profile Information
+              </h3>
+              <button onClick={() => setShowProfileModal(false)} className="p-1 text-slate-400 hover:text-slate-600">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+                <label className="text-[10px] font-bold text-slate-400 uppercase">1. Full Name</label>
+                <p className="text-sm font-bold text-slate-900 mt-0.5">{adminName || 'System Administrator'}</p>
+              </div>
+              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+                <label className="text-[10px] font-bold text-slate-400 uppercase">2. Employee No.</label>
+                <p className="text-sm font-mono font-bold text-slate-900 mt-0.5">EMP-0001</p>
+              </div>
+              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+                <label className="text-[10px] font-bold text-slate-400 uppercase">3. Position / Role</label>
+                <p className="text-sm font-bold text-slate-900 mt-0.5">Head Maintenance Manager</p>
+              </div>
+              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+                <label className="text-[10px] font-bold text-slate-400 uppercase">4. Email Address</label>
+                <p className="text-sm font-bold text-slate-900 mt-0.5 truncate">minhaj.dssc1@gmail.com</p>
+              </div>
+              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+                <label className="text-[10px] font-bold text-slate-400 uppercase">5. Phone Number</label>
+                <p className="text-sm font-bold text-slate-900 mt-0.5">+94 81 239 1000</p>
+              </div>
+              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+                <label className="text-[10px] font-bold text-slate-400 uppercase">6. Address & Department</label>
+                <p className="text-xs font-semibold text-slate-800 mt-0.5">Facilities Management, Main Admin Block, Peradeniya</p>
+              </div>
+            </div>
+
+            <button onClick={() => setShowProfileModal(false)} className="w-full bg-primary text-white py-2.5 rounded-xl font-bold text-xs shadow-md">
+              Close Profile
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="sticky top-0 z-40 bg-slate-900 backdrop-blur-md border-b border-slate-800 px-4 py-3 text-white shadow-xl">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
@@ -599,11 +687,19 @@ export default function Dashboard() {
             <img src="/knot_logo_white.png" alt="KNOT Logo" className="h-20 scale-[1.7] origin-left object-contain -ml-2 -my-4" />
           </div>
           <div className="flex items-center gap-3">
+            <button 
+              onClick={openEmailLogsModal} 
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg text-xs font-semibold border border-slate-700 transition-colors shadow-sm"
+              title="Email Dispatch Logs"
+            >
+              <Mail size={15} className="text-primary" />
+              <span>Email Logs</span>
+            </button>
             <button className="relative text-slate-300 hover:text-white transition-colors p-2">
               <Bell size={20} />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-slate-900"></span>
             </button>
-            <div className="flex items-center gap-2 bg-slate-800 rounded-xl px-3 py-1.5">
+            <div onClick={() => setShowProfileModal(true)} className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 rounded-xl px-3 py-1.5 cursor-pointer transition-colors" title="My Profile">
               <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center">
                 <User size={14} />
               </div>
@@ -807,7 +903,7 @@ export default function Dashboard() {
                     )}
                     <div>
                       <p className="text-xs font-bold text-slate-400 mb-0.5 flex items-center gap-1">
-                        <MapPin size={11} className="text-primary" />{ticket.location}
+                        <MapPin size={11} className="text-primary" />{formatLocationForDashboard(ticket.location)}
                       </p>
                       <h3 className="text-sm font-bold text-slate-900 leading-tight">{ticket.title}</h3>
                     </div>
@@ -914,6 +1010,86 @@ export default function Dashboard() {
           © 2026 KNOT Platform - Maintenance Management Portal.<br />All rights reserved.
         </div>
       </main>
+
+      {/* Email Notification Activity Log Modal */}
+      {emailLogsModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl animate-fade-in flex flex-col max-h-[85vh]">
+            <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                  <Mail size={18} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Email Notification Dispatches</h3>
+                  <p className="text-xs text-slate-500">Live logs of all emails sent for maintenance requests, assignments, and updates.</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setEmailLogsModalOpen(false)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-4 overflow-y-auto flex-1 space-y-3">
+              {loadingEmailLogs ? (
+                <div className="flex justify-center items-center py-12">
+                  <RefreshCcw size={24} className="animate-spin text-primary" />
+                </div>
+              ) : emailLogs.length === 0 ? (
+                <div className="text-center py-12 text-slate-400">
+                  <Mail size={36} className="mx-auto mb-2 opacity-40" />
+                  <p className="text-sm font-semibold">No email dispatches recorded yet.</p>
+                  <p className="text-xs text-slate-500 mt-1">Emails will appear here automatically when tickets are created, assigned, or updated.</p>
+                </div>
+              ) : (
+                emailLogs.map((log) => (
+                  <div key={log.id} className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-slate-100/50 transition-colors">
+                    <div className="flex items-start justify-between gap-2 mb-1.5">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider ${
+                          log.event_type === 'TICKET_CREATED' ? 'bg-amber-100 text-amber-700 border border-amber-300' :
+                          log.event_type === 'TECHNICIAN_ASSIGNED' ? 'bg-blue-100 text-blue-700 border border-blue-300' :
+                          log.event_type === 'NEXT_STEP_SENT' ? 'bg-purple-100 text-purple-700 border border-purple-300' :
+                          'bg-emerald-100 text-emerald-700 border border-emerald-300'
+                        }`}>
+                          {log.event_type?.replace(/_/g, ' ')}
+                        </span>
+                        <span className="text-xs font-semibold text-slate-700">{log.recipient_email}</span>
+                      </div>
+                      <span className="text-[11px] text-slate-400 whitespace-nowrap">
+                        {new Date(log.sent_at).toLocaleString()}
+                      </span>
+                    </div>
+
+                    <h4 className="text-xs font-bold text-slate-900 mb-1">{log.subject}</h4>
+                    <p className="text-xs text-slate-600 line-clamp-2 bg-white p-2 rounded-lg border border-slate-100 font-mono text-[11px]">
+                      {log.message_body}
+                    </p>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="p-3 border-t border-slate-200 bg-slate-50 flex justify-between items-center">
+              <button 
+                onClick={fetchEmailLogs}
+                className="text-xs text-primary hover:underline font-bold flex items-center gap-1"
+              >
+                <RefreshCcw size={12} /> Refresh Activity Logs
+              </button>
+              <button 
+                onClick={() => setEmailLogsModalOpen(false)}
+                className="px-4 py-1.5 bg-slate-200 text-slate-700 rounded-lg text-xs font-bold hover:bg-slate-300 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
