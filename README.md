@@ -118,10 +118,13 @@ Open your browser and navigate to **`http://localhost:3000`**.
 
 ## 📚 System Documentation
 
-- 🛠️ **[Developer & Maintainer Guide](docs/DEVELOPER_GUIDE.md)**: Technical architecture, database schemas, ER diagrams, backend APIs, 2-step verification cron logic, and deployment instructions.
-- 📖 **[Comprehensive User Manual](docs/USER_MANUAL.md)**: Step-by-step user guide for Students, Lecturers, Booking Admins (AR Office), Maintenance Admins, and Field Technicians.
+- 🛠️ **Developer & Maintainer Guide**: [Markdown Version](docs/DEVELOPER_GUIDE.md) | [Word Document (.docx)](docs/DEVELOPER_GUIDE.docx)
+  - *Technical architecture, database schemas, ER diagrams, backend APIs, 2-step verification cron logic, and deployment instructions.*
+- 📖 **Comprehensive User Manual**: [Markdown Version](docs/USER_MANUAL.md) | [Word Document (.docx)](docs/USER_MANUAL.docx)
+  - *Step-by-step user guide for Students, Lecturers, Booking Admins (AR Office), Maintenance Admins, and Field Technicians.*
 
 ---
+
 
 ## 👥 Team Roles
 

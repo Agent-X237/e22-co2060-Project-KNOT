@@ -24,10 +24,13 @@ title: Project KNOT – University Resource & Maintenance Management Platform
 
 ## 📚 Complete System Guides
 
-- 🛠️ **[Developer & Maintainer Guide](DEVELOPER_GUIDE.md)**: Technical architecture, database models, micro-service gateway proxy setup, 2-step verification background cron jobs, and API reference.
-- 📖 **[Comprehensive User Manual](USER_MANUAL.md)**: Role-based step-by-step user manual for Students, Lecturers, Booking Admins (AR Office), Maintenance Admins, and Field Technicians.
+- 🛠️ **Developer & Maintainer Guide**: [Markdown Version](DEVELOPER_GUIDE.md) | [Word Document (.docx)](DEVELOPER_GUIDE.docx)
+  - *Technical architecture, database models, micro-service gateway proxy setup, 2-step verification background cron jobs, and API reference.*
+- 📖 **Comprehensive User Manual**: [Markdown Version](USER_MANUAL.md) | [Word Document (.docx)](USER_MANUAL.docx)
+  - *Role-based step-by-step user manual for Students, Lecturers, Booking Admins (AR Office), Maintenance Admins, and Field Technicians.*
 
 ---
+
 
 #### Table of Contents
 1. [Introduction](#introduction)
