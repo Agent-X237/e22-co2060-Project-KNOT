@@ -324,3 +324,5 @@ app.put('/api/technician/tickets/:id', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+// Documented fault reporting endpoints
