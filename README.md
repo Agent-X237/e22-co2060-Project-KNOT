@@ -116,9 +116,17 @@ Open your browser and navigate to **`http://localhost:3000`**.
 
 ---
 
+## 📚 System Documentation
+
+- 🛠️ **[Developer & Maintainer Guide](docs/DEVELOPER_GUIDE.md)**: Technical architecture, database schemas, ER diagrams, backend APIs, 2-step verification cron logic, and deployment instructions.
+- 📖 **[Comprehensive User Manual](docs/USER_MANUAL.md)**: Step-by-step user guide for Students, Lecturers, Booking Admins (AR Office), Maintenance Admins, and Field Technicians.
+
+---
+
 ## 👥 Team Roles
 
 - **Team Leader / Lead Developer:** Minhaj Ali (E/22/237) – System Architecture, Gateway Integration, Availability Grid & Backend APIs  
 - **Product Owner:** Senara Senanayake (E/22/366) – Requirements & UX Design  
 - **Developer:** Chamudi Perera (E/22/280) – Maintenance Workflow & Technician Panel 
 - **Developer:** Ewmi Wijesinghe (E/22/443) – Student Interface & Timetable Calendar  
+
