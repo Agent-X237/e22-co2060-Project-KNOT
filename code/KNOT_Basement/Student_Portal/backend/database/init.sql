@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS users (
   break_end VARCHAR(50) DEFAULT '01:15 PM',
   break_slots TEXT
 );
-
+-- testing
 -- 2. Create Faults Table
 CREATE TABLE IF NOT EXISTS faults (
   id INT AUTO_INCREMENT PRIMARY KEY,
