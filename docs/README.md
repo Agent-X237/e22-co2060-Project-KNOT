@@ -28,8 +28,11 @@ title: Project KNOT – University Resource & Maintenance Management Platform
   - *Technical architecture, database models, micro-service gateway proxy setup, 2-step verification background cron jobs, and API reference.*
 - 📖 **Comprehensive User Manual**: [Markdown Version](USER_MANUAL.md) | [Word Document (.docx)](USER_MANUAL.docx)
   - *Role-based step-by-step user manual for Students, Lecturers, Booking Admins (AR Office), Maintenance Admins, and Field Technicians.*
+- 🧪 **System Testing & Validation Report**: [Markdown Version](TESTING_AND_VALIDATION.md) | [Word Document (.docx)](TESTING_AND_VALIDATION.docx)
+  - *Automated test execution logs (100% pass rate), code coverage metrics (95.1%), manual test traceability matrix (RTM), bug resolution log, and performance benchmark evidence.*
 
 ---
+
 
 
 #### Table of Contents

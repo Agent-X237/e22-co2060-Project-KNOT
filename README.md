@@ -122,8 +122,11 @@ Open your browser and navigate to **`http://localhost:3000`**.
   - *Technical architecture, database schemas, ER diagrams, backend APIs, 2-step verification cron logic, and deployment instructions.*
 - 📖 **Comprehensive User Manual**: [Markdown Version](docs/USER_MANUAL.md) | [Word Document (.docx)](docs/USER_MANUAL.docx)
   - *Step-by-step user guide for Students, Lecturers, Booking Admins (AR Office), Maintenance Admins, and Field Technicians.*
+- 🧪 **System Testing & Validation Report**: [Markdown Version](docs/TESTING_AND_VALIDATION.md) | [Word Document (.docx)](docs/TESTING_AND_VALIDATION.docx)
+  - *Automated test execution logs (100% pass rate), code coverage metrics (95.1%), manual test traceability matrix (RTM), bug resolution log, and performance benchmark evidence.*
 
 ---
+
 
 
 ## 👥 Team Roles
