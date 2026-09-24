@@ -1,0 +1,85 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: knot-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: new_password
+      MYSQL_DATABASE: knot_db
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pnew_password"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./Student_Portal/backend
+      dockerfile: Dockerfile
+    container_name: knot-student-backend
+    restart: always
+    environment:
+      PORT: 5001
+      DB_HOST: db
+      DB_USER: root
+      DB_PASSWORD: new_password
+      DB_NAME: knot_db
+      JWT_SECRET: knot_super_secret_jwt_key_2026
+    ports:
+      - "5001:5001"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  maintenance-backend:
+    build:
+      context: ./maintenance_system/server
+      dockerfile: Dockerfile
+    container_name: knot-maintenance-backend
+    restart: always
+    environment:
+      PORT: 5003
+      DB_HOST: db
+      DB_USER: root
+      DB_PASSWORD: new_password
+      DB_NAME: knot_db
+    ports:
+      - "5003:5003"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./Student_Portal/frontend
+      dockerfile: Dockerfile
+    container_name: knot-frontend
+    restart: always
+    ports:
+      - "80:80"
+      - "5173:80"
+    depends_on:
+      - backend
+      - maintenance-backend
+
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: knot-gateway
+    restart: always
+    ports:
+      - "3000:3000"
+    depends_on:
+      - frontend
+      - backend
+
+volumes:
+  mysql_data:
+    driver: local

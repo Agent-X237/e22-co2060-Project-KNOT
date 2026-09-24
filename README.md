@@ -124,8 +124,11 @@ Open your browser and navigate to **`http://localhost:3000`**.
   - *Step-by-step user guide for Students, Lecturers, Booking Admins (AR Office), Maintenance Admins, and Field Technicians.*
 - 🧪 **System Testing & Validation Report**: [Markdown Version](docs/TESTING_AND_VALIDATION.md) | [Word Document (.docx)](docs/TESTING_AND_VALIDATION.docx)
   - *Automated test execution logs (100% pass rate), code coverage metrics (95.1%), manual test traceability matrix (RTM), bug resolution log, and performance benchmark evidence.*
+- 🐳 **Docker Containerization Guide**: [Markdown Version](docs/DOCKER_GUIDE.md) | [Word Document (.docx)](docs/DOCKER_GUIDE.docx)
+  - *Complete Docker & Docker Compose setup, multi-container architecture, Nginx proxy, MySQL volume persistence, and one-command deployment instructions.*
 
 ---
+
 
 
 

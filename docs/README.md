@@ -30,8 +30,11 @@ title: Project KNOT – University Resource & Maintenance Management Platform
   - *Role-based step-by-step user manual for Students, Lecturers, Booking Admins (AR Office), Maintenance Admins, and Field Technicians.*
 - 🧪 **System Testing & Validation Report**: [Markdown Version](TESTING_AND_VALIDATION.md) | [Word Document (.docx)](TESTING_AND_VALIDATION.docx)
   - *Automated test execution logs (100% pass rate), code coverage metrics (95.1%), manual test traceability matrix (RTM), bug resolution log, and performance benchmark evidence.*
+- 🐳 **Docker Containerization Guide**: [Markdown Version](DOCKER_GUIDE.md) | [Word Document (.docx)](DOCKER_GUIDE.docx)
+  - *Complete Docker & Docker Compose setup, multi-container architecture, Nginx proxy, MySQL volume persistence, and one-command deployment instructions.*
 
 ---
+
 
 
 
