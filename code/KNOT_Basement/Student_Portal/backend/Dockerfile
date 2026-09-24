@@ -12,7 +12,6 @@ RUN npm install --production
 
 # Copy remaining backend source code and database initialization script
 COPY . .
-COPY ../database/setup_db.js ./database/setup_db.js
 
 # Expose backend API port
 EXPOSE 5001

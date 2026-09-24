@@ -5,7 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "setup-db": "node setup_db.js"
+    "setup-db": "node database/setup_db.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
