@@ -14,6 +14,14 @@ if (process.env.SMTP_HOST && process.env.SMTP_USER) {
       pass: process.env.SMTP_PASS
     }
   });
+} else if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+  transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS
+    }
+  });
 } else {
   // Test / Local fallback transport (logs dispatches cleanly without failing)
   transporter = nodemailer.createTransport({

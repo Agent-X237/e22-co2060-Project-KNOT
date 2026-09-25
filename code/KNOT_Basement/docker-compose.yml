@@ -31,6 +31,12 @@ services:
       DB_PASSWORD: new_password
       DB_NAME: knot_db
       JWT_SECRET: knot_super_secret_jwt_key_2026
+      EMAIL_USER: ${EMAIL_USER:-minhaj.dssc1@gmail.com}
+      EMAIL_PASS: ${EMAIL_PASS:-app_password_here}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
     ports:
       - "5001:5001"
     depends_on:
@@ -49,6 +55,12 @@ services:
       DB_USER: root
       DB_PASSWORD: new_password
       DB_NAME: knot_db
+      EMAIL_USER: ${EMAIL_USER:-minhaj.dssc1@gmail.com}
+      EMAIL_PASS: ${EMAIL_PASS:-app_password_here}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
     ports:
       - "5003:5003"
     depends_on:
