@@ -56,7 +56,7 @@ initDB();
 app.post('/api/auth/login', async (req, res) => {
   const { username, password } = req.body;
   try {
-    const [rows] = await pool.query('SELECT id, username, name, role, department, email FROM users WHERE username = ? AND password = ?', [username, password]);
+    const [rows] = await pool.query('SELECT id, username, name, role, department, email FROM users WHERE (username = ? OR email = ?) AND password = ?', [username, username, password]);
     if (rows.length > 0) {
       res.json({ success: true, user: rows[0] });
     } else {
