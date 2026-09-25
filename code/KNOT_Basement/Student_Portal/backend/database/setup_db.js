@@ -182,7 +182,7 @@ async function setupDatabase() {
         ('DO1 - Drawing Office 1', 'Friday, 02:30 PM', 'Pending', 'corporate_fare', ?, 'Dr. Smith', 'Group Discussion')
       `, [userId, userId]);
     } else {
-      await connection.query(`UPDATE users SET email = 'e22237@eng.pdn.ac.lk' WHERE username = 'e22237'`);
+      await connection.query(`UPDATE users SET password = '1234', email = 'e22237@eng.pdn.ac.lk' WHERE username = 'e22237'`);
     }
 
     // Seed mock rooms
@@ -210,7 +210,7 @@ async function setupDatabase() {
         VALUES ('admin', 'adminpass', 'System Administrator', 'maintenance_admin', 'Facilities Management', 'minhaj.dssc1@gmail.com')
       `);
     } else {
-      await connection.query(`UPDATE users SET email = 'minhaj.dssc1@gmail.com' WHERE username = 'admin'`);
+      await connection.query(`UPDATE users SET password = 'adminpass', email = 'minhaj.dssc1@gmail.com' WHERE username = 'admin'`);
     }
 
     const [bookAdminRows] = await connection.query(`SELECT * FROM users WHERE username = 'bookadmin'`);
@@ -220,7 +220,7 @@ async function setupDatabase() {
         VALUES ('bookadmin', 'adminpass', 'Booking Administrator', 'booking_admin', 'AR Office', 'minhaj.dssc3@gmail.com')
       `);
     } else {
-      await connection.query(`UPDATE users SET email = 'minhaj.dssc3@gmail.com' WHERE username = 'bookadmin'`);
+      await connection.query(`UPDATE users SET password = 'adminpass', email = 'minhaj.dssc3@gmail.com' WHERE username = 'bookadmin'`);
     }
 
     const [lecturerRows] = await connection.query(`SELECT * FROM users WHERE username = 'lecturer1'`);
@@ -230,7 +230,7 @@ async function setupDatabase() {
         VALUES ('lecturer1', '1234', 'Dr. Smith', 'Lecturer', 'Department of Computer Engineering', 'minhajchamodya@gmail.com')
       `);
     } else {
-      await connection.query(`UPDATE users SET email = 'minhajchamodya@gmail.com' WHERE username = 'lecturer1'`);
+      await connection.query(`UPDATE users SET password = '1234', email = 'minhajchamodya@gmail.com' WHERE username = 'lecturer1'`);
     }
 
     const [alexRows] = await connection.query(`SELECT * FROM users WHERE username = 'alex'`);
@@ -240,7 +240,7 @@ async function setupDatabase() {
         VALUES ('alex', '1234', 'Alex Johnson', 'Technician', 'Facilities Management', 'slminsgaming@gmail.com')
       `);
     } else {
-      await connection.query(`UPDATE users SET email = 'slminsgaming@gmail.com' WHERE username = 'alex'`);
+      await connection.query(`UPDATE users SET password = '1234', email = 'slminsgaming@gmail.com' WHERE username = 'alex'`);
     }
 
     const [samRows] = await connection.query(`SELECT * FROM users WHERE username = 'sam'`);
@@ -249,6 +249,8 @@ async function setupDatabase() {
         INSERT INTO users (username, password, name, role, department) 
         VALUES ('sam', '1234', 'Sam Carter', 'Technician', 'Facilities Management')
       `);
+    } else {
+      await connection.query(`UPDATE users SET password = '1234' WHERE username = 'sam'`);
     }
 
     console.log("Database initialized and mock data seeded successfully!");
