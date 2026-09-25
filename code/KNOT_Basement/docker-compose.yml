@@ -35,10 +35,13 @@ services:
       JWT_SECRET: knot_super_secret_jwt_key_2026
       EMAIL_USER: ${EMAIL_USER:-minhaj.dssc2@gmail.com}
       EMAIL_PASS: ${EMAIL_PASS:-wvvnkowdrbnfetva}
-      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
       SMTP_PORT: ${SMTP_PORT:-587}
-      SMTP_USER: ${SMTP_USER:-}
-      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_USER: ${SMTP_USER:-minhaj.dssc2@gmail.com}
+      SMTP_PASS: ${SMTP_PASS:-wvvnkowdrbnfetva}
+      FRONTEND_URL: ${FRONTEND_URL:-https://foe.knotpdn.tech}
+      BACKEND_URL: ${BACKEND_URL:-https://backend.knotpdn.tech}
+      VITE_API_URL: ${VITE_API_URL:-https://backend.knotpdn.tech}
     ports:
       - "5001:5001"
     depends_on:
@@ -61,10 +64,13 @@ services:
       DB_NAME: knot_db
       EMAIL_USER: ${EMAIL_USER:-minhaj.dssc2@gmail.com}
       EMAIL_PASS: ${EMAIL_PASS:-wvvnkowdrbnfetva}
-      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
       SMTP_PORT: ${SMTP_PORT:-587}
-      SMTP_USER: ${SMTP_USER:-}
-      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_USER: ${SMTP_USER:-minhaj.dssc2@gmail.com}
+      SMTP_PASS: ${SMTP_PASS:-wvvnkowdrbnfetva}
+      FRONTEND_URL: ${FRONTEND_URL:-https://foe.knotpdn.tech}
+      BACKEND_URL: ${BACKEND_URL:-https://backend.knotpdn.tech}
+      VITE_API_URL: ${VITE_API_URL:-https://backend.knotpdn.tech}
     ports:
       - "5003:5003"
     depends_on:
@@ -75,8 +81,12 @@ services:
     build:
       context: ./Student_Portal/frontend
       dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-https://backend.knotpdn.tech}
     container_name: knot-frontend
     restart: always
+    env_file:
+      - .env
     ports:
       - "5173:80"
     depends_on:

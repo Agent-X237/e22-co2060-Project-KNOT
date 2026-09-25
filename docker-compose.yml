@@ -86,8 +86,12 @@ services:
     build:
       context: ./code/KNOT_Basement/Student_Portal/frontend
       dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-https://backend.knotpdn.tech}
     container_name: knot-frontend
     restart: always
+    env_file:
+      - .env
     ports:
       - "5173:80"
     depends_on:
