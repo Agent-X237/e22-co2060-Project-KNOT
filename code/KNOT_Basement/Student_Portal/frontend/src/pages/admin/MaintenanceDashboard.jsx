@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Bell, User, Filter, ChevronLeft, ChevronRight, ClipboardList, RefreshCcw, CheckCircle2, Clock, Wrench, Shield, Camera, Coffee, X, Save, Calendar, Plus, Trash2, Mail } from 'lucide-react';
+import { API_BASE_URL } from '../../config/api';
 
 const parseTimeToMinutes = (timeStr) => {
   if (!timeStr) return null;
@@ -124,7 +125,7 @@ export default function MaintenanceDashboard() {
   const fetchEmailLogs = async () => {
     setLoadingEmailLogs(true);
     try {
-      const res = await fetch('http://localhost:5001/api/admin/email-logs');
+      const res = await fetch(`${API_BASE_URL}/api/admin/email-logs`);
       if (res.ok) {
         const data = await res.json();
         setEmailLogs(data);
@@ -143,7 +144,7 @@ export default function MaintenanceDashboard() {
 
   const fetchTechnicians = async () => {
     try {
-      const res = await fetch('http://localhost:5001/api/admin/technicians');
+      const res = await fetch(`${API_BASE_URL}/api/admin/technicians`);
       if (res.ok) {
         const data = await res.json();
         setTechnicians(data);
@@ -156,7 +157,7 @@ export default function MaintenanceDashboard() {
   const fetchData = async (currentStatus = statusFilter, currentSearch = search) => {
     setLoading(true);
     try {
-      let url = `http://localhost:5001/api/tickets?limit=10`;
+      let url = `${API_BASE_URL}/api/tickets?limit=10`;
       if (currentStatus !== 'all') {
         url += `&status=${encodeURIComponent(currentStatus)}`;
       }
@@ -165,7 +166,7 @@ export default function MaintenanceDashboard() {
       }
 
       const [statsRes, ticketsRes] = await Promise.all([
-        fetch('http://localhost:5001/api/tickets/stats'),
+        fetch(`${API_BASE_URL}/api/tickets/stats`),
         fetch(url)
       ]);
       const statsData = await statsRes.json();
@@ -234,7 +235,7 @@ export default function MaintenanceDashboard() {
     setSavingBreak(true);
     try {
       const firstSlot = breakSlots[0] || { start: '12:30 PM', end: '01:15 PM' };
-      const res = await fetch(`http://localhost:5001/api/admin/technicians/${selectedTechProfile.id}/break`, {
+      const res = await fetch(`${API_BASE_URL}/api/admin/technicians/${selectedTechProfile.id}/break`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

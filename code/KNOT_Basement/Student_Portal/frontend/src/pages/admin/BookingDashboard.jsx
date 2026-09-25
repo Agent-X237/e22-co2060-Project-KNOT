@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { API_BASE_URL } from '../../config/api';
 import {
   Bell, Calendar, Wrench, RefreshCcw,
   MapPin, Clock, Info, CheckCircle2,
@@ -175,27 +176,27 @@ export default function BookingDashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      const statsRes = await fetch('http://localhost:5001/api/admin/bookings/stats');
+      const statsRes = await fetch(`${API_BASE_URL}/api/admin/bookings/stats`);
       if (statsRes.ok) setStats(await statsRes.json());
 
-      const settingsRes = await fetch('http://localhost:5001/api/admin/settings/auto-booking');
+      const settingsRes = await fetch(`${API_BASE_URL}/api/admin/settings/auto-booking`);
       if (settingsRes.ok) {
         const settingsData = await settingsRes.json();
         setAutoBookingEnabled(settingsData.auto_booking);
       }
 
       if (activeView === 'pending' || activeView === 'overview') {
-        const approvalsRes = await fetch('http://localhost:5001/api/admin/pending-bookings');
+        const approvalsRes = await fetch(`${API_BASE_URL}/api/admin/pending-bookings`);
         if (approvalsRes.ok) setApprovals(await approvalsRes.json());
       }
       
       if (activeView === 'all-bookings' || activeView === 'overview') {
-        const bookingsRes = await fetch('http://localhost:5001/api/admin/all-bookings');
+        const bookingsRes = await fetch(`${API_BASE_URL}/api/admin/all-bookings`);
         if (bookingsRes.ok) setAllBookings(await bookingsRes.json());
       }
 
       if (activeView === 'rooms' || activeView === 'bulk-import' || activeView === 'overview') {
-        const roomsRes = await fetch('http://localhost:5001/api/admin/rooms');
+        const roomsRes = await fetch(`${API_BASE_URL}/api/admin/rooms`);
         if (roomsRes.ok) setRooms(await roomsRes.json());
       }
     } catch (error) {
@@ -206,7 +207,7 @@ export default function BookingDashboard() {
   const handleToggleAutoBooking = async () => {
     const nextState = !autoBookingEnabled;
     try {
-      const res = await fetch('http://localhost:5001/api/admin/settings/auto-booking', {
+      const res = await fetch(`${API_BASE_URL}/api/admin/settings/auto-booking`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ enabled: nextState })
@@ -224,7 +225,7 @@ export default function BookingDashboard() {
       const payload = { action };
       if (action === 'reject') payload.reason = rejectReason;
 
-      const response = await fetch(`http://localhost:5001/api/admin/bookings/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/bookings/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload) 
@@ -248,7 +249,7 @@ export default function BookingDashboard() {
   const handleAddRoom = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch('http://localhost:5001/api/admin/rooms', {
+      const res = await fetch(`${API_BASE_URL}/api/admin/rooms`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newRoom)
@@ -264,7 +265,7 @@ export default function BookingDashboard() {
   const handleToggleRoomStatus = async (room) => {
     const newStatus = room.status === 'Available' ? 'Maintenance' : 'Available';
     try {
-      await fetch(`http://localhost:5001/api/admin/rooms/${room.id}`, {
+      await fetch(`${API_BASE_URL}/api/admin/rooms/${room.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })
@@ -276,7 +277,7 @@ export default function BookingDashboard() {
   const handleDeleteRoom = async (id) => {
     if (!window.confirm("Are you sure you want to delete this room?")) return;
     try {
-      await fetch(`http://localhost:5001/api/admin/rooms/${id}`, { method: 'DELETE' });
+      await fetch(`${API_BASE_URL}/api/admin/rooms/${id}`, { method: 'DELETE' });
       fetchDashboardData();
     } catch (error) { console.error("Error deleting room:", error); }
   };
@@ -354,7 +355,7 @@ export default function BookingDashboard() {
     setImportSuccess(null);
 
     try {
-      const res = await fetch('http://localhost:5001/api/admin/bookings/bulk-validate', {
+      const res = await fetch(`${API_BASE_URL}/api/admin/bookings/bulk-validate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -389,7 +390,7 @@ export default function BookingDashboard() {
       const userString = localStorage.getItem('knot_user');
       const user = userString ? JSON.parse(userString) : null;
 
-      const res = await fetch('http://localhost:5001/api/admin/bookings/bulk-insert', {
+      const res = await fetch(`${API_BASE_URL}/api/admin/bookings/bulk-insert`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

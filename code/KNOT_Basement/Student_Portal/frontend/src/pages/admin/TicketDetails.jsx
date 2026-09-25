@@ -4,6 +4,7 @@ import { ArrowLeft, MoreVertical, MapPin, User, Check, Users, CheckCircle2, Save
 import { MapContainer, TileLayer, Marker } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import { API_BASE_URL } from '../../config/api';
 
 // Fix Leaflet's default icon rendering issue
 delete L.Icon.Default.prototype._getIconUrl;
@@ -100,7 +101,7 @@ export default function TicketDetails() {
 
   const fetchTechnicians = async () => {
     try {
-      const res = await fetch('http://localhost:5001/api/admin/technicians');
+      const res = await fetch(`${API_BASE_URL}/api/admin/technicians`);
       const data = await res.json();
       setTechnicians(data);
     } catch (err) {
@@ -110,7 +111,7 @@ export default function TicketDetails() {
 
   const fetchTicket = async () => {
     try {
-      const res = await fetch(`http://localhost:5001/api/tickets/${id}`);
+      const res = await fetch(`${API_BASE_URL}/api/tickets/${id}`);
       const data = await res.json();
       setTicket(data);
       setStatus(data.status);
@@ -133,7 +134,7 @@ export default function TicketDetails() {
       const targetTechId = newTechId === '' ? null : Number(newTechId);
       const newStatus = (targetTechId && status === 'Open') ? 'In Progress' : status;
 
-      const res = await fetch(`http://localhost:5001/api/tickets/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/tickets/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -162,7 +163,7 @@ export default function TicketDetails() {
     setSaving(true);
     setSaveSuccess(false);
     try {
-      const res = await fetch(`http://localhost:5001/api/tickets/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/tickets/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -189,7 +190,7 @@ export default function TicketDetails() {
   const handleVerifyCompletion = async () => {
     setSaving(true);
     try {
-      const res = await fetch(`http://localhost:5001/api/tickets/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/tickets/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -221,7 +222,7 @@ export default function TicketDetails() {
     }
     setSaving(true);
     try {
-      const res = await fetch(`http://localhost:5001/api/tickets/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/tickets/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

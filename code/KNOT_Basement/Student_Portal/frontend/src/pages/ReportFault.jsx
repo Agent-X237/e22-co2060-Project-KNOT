@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import { API_BASE_URL } from '../config/api';
 
 // Fix Leaflet's default icon rendering issue
 delete L.Icon.Default.prototype._getIconUrl;
@@ -112,7 +113,7 @@ export default function ReportFault() {
         ? `${location}\nMap Coordinates: ${mapPosition.lat.toFixed(5)}, ${mapPosition.lng.toFixed(5)}`.trim()
         : location.trim();
 
-      await axios.post('http://localhost:5001/api/faults', {
+      await axios.post(`${API_BASE_URL}/api/faults`, {
         title: `${building} ${room}`,
         description,
         priority,

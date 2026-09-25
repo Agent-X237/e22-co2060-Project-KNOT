@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import TimetableCalendar from '../components/TimetableCalendar';
 import BookingVerificationBanner from '../components/BookingVerificationBanner';
+import { API_BASE_URL } from '../config/api';
 
 export default function LecturerDashboard() {
   const [faults, setFaults] = useState([]);
@@ -33,10 +34,10 @@ export default function LecturerDashboard() {
   const fetchData = async () => {
     try {
       const [faultsRes, bookingsRes, requestsRes, roomsRes] = await Promise.all([
-        axios.get('http://localhost:5001/api/faults/' + user?.id),
-        axios.get('http://localhost:5001/api/bookings/' + user?.id),
-        axios.get('http://localhost:5001/api/lecturer/requests/' + user?.id),
-        axios.get('http://localhost:5001/api/rooms')
+        axios.get(`${API_BASE_URL}/api/faults/` + user?.id),
+        axios.get(`${API_BASE_URL}/api/bookings/` + user?.id),
+        axios.get(`${API_BASE_URL}/api/lecturer/requests/` + user?.id),
+        axios.get(`${API_BASE_URL}/api/rooms`)
       ]);
       setFaults(faultsRes.data);
       setBookings(bookingsRes.data);
@@ -54,7 +55,7 @@ export default function LecturerDashboard() {
 
   const forwardToAR = async (id) => {
     try {
-      await axios.put('http://localhost:5001/api/lecturer/requests/' + id + '/forward');
+      await axios.put(`${API_BASE_URL}/api/lecturer/requests/` + id + '/forward');
       fetchData(); 
     } catch (err) {
       alert("Failed to forward request.");
@@ -63,7 +64,7 @@ export default function LecturerDashboard() {
 
   const rejectRequest = async (id) => {
     try {
-      await axios.put('http://localhost:5001/api/lecturer/requests/' + id + '/reject', { reason: rejectReason });
+      await axios.put(`${API_BASE_URL}/api/lecturer/requests/` + id + '/reject', { reason: rejectReason });
       setRejectingId(null);
       setRejectReason('');
       fetchData(); 

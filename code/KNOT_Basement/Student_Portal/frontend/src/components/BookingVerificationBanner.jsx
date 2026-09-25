@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { AlertTriangle, CheckCircle, XCircle, Clock, Calendar, MapPin, Building, ShieldCheck } from 'lucide-react';
+import { API_BASE_URL } from '../config/api';
 
 export default function BookingVerificationBanner({ user, onActionComplete }) {
   const [verifications, setVerifications] = useState([]);
@@ -22,7 +23,7 @@ export default function BookingVerificationBanner({ user, onActionComplete }) {
   const fetchVerifications = async () => {
     try {
       const identifier = user?.id || user?.username;
-      const res = await axios.get(`http://localhost:5001/api/bookings/verifications/${identifier}`);
+      const res = await axios.get(`${API_BASE_URL}/api/bookings/verifications/${identifier}`);
       setVerifications(res.data || []);
     } catch (err) {
       console.error("Error fetching 2-step verifications:", err);
@@ -32,7 +33,7 @@ export default function BookingVerificationBanner({ user, onActionComplete }) {
   const handleVerifyAction = async (bookingId, action) => {
     setLoading(true);
     try {
-      const res = await axios.put(`http://localhost:5001/api/bookings/${bookingId}/verify`, { action });
+      const res = await axios.put(`${API_BASE_URL}/api/bookings/${bookingId}/verify`, { action });
       setActionNotice(res.data.message);
       await fetchVerifications();
       if (onActionComplete) onActionComplete();

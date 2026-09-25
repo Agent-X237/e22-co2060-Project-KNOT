@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
 import BookingVerificationBanner from '../components/BookingVerificationBanner';
+import { API_BASE_URL } from '../config/api';
 
 const getRoomDetails = (room) => {
   if (!room) return null;
@@ -100,7 +101,7 @@ export default function BookSpace() {
     }
 
     // Fetch rooms dynamically
-    axios.get('http://localhost:5001/api/rooms')
+    axios.get(`${API_BASE_URL}/api/rooms`)
       .then(res => {
         const fetchedRooms = res.data;
         setRooms(fetchedRooms);
@@ -126,7 +127,7 @@ export default function BookSpace() {
       });
     
     // Fetch lecturers dynamically
-    axios.get('http://localhost:5001/api/lecturers')
+    axios.get(`${API_BASE_URL}/api/lecturers`)
       .then(res => setDbLecturers(res.data))
       .catch(err => {
         console.error("Failed to load lecturers dynamically:", err);
@@ -146,7 +147,7 @@ export default function BookSpace() {
   // Fetch approved bookings for the selected room and date
   useEffect(() => {
     if (!selectedRoom) return;
-    axios.get('http://localhost:5001/api/schedule/all')
+    axios.get(`${API_BASE_URL}/api/schedule/all`)
       .then(res => {
         setExistingBookings(res.data);
       })
@@ -318,7 +319,7 @@ export default function BookSpace() {
       // Set booking type for database analytics and dashboard compatibility
       const bookingType = user?.role === 'Lecturer' ? 'Lecture' : 'AR Office';
 
-      await axios.post('http://localhost:5001/api/bookings', {
+      await axios.post(`${API_BASE_URL}/api/bookings`, {
         title: selectedRoom ? selectedRoom.name : loc.title,
         time_display: `${date} ${formatTime(selectedStart)} - ${formatTime(selectedEnd)}`,
         user_id: user.id,
@@ -356,7 +357,7 @@ export default function BookSpace() {
         <p className="text-sm text-slate-500 mb-4">Find halls, labs, and study rooms across campus.</p>
 
         <BookingVerificationBanner user={user} onActionComplete={() => {
-          axios.get('http://localhost:5001/api/schedule/all').then(res => setExistingBookings(res.data));
+          axios.get(`${API_BASE_URL}/api/schedule/all`).then(res => setExistingBookings(res.data));
         }} />
 
         {rooms.length > 0 && (

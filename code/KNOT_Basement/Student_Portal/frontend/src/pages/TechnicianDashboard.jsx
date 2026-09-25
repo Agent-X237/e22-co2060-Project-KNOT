@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { API_BASE_URL } from '../config/api';
 import { 
   Wrench, 
   CheckCircle2, 
@@ -181,7 +182,7 @@ export default function TechnicianDashboard() {
 
   const fetchTechnicianProfile = async () => {
     try {
-      const res = await axios.get('http://localhost:5001/api/admin/technicians');
+      const res = await axios.get(`${API_BASE_URL}/api/admin/technicians`);
       if (res.data && Array.isArray(res.data)) {
         const me = res.data.find(t => t.id === user.id || t.username === user.username);
         if (me && me.break_slots && Array.isArray(me.break_slots) && me.break_slots.length > 0) {
@@ -197,7 +198,7 @@ export default function TechnicianDashboard() {
     setLoading(true);
     try {
       const techIdentifier = user?.id || user?.username || 'alex';
-      const res = await axios.get(`http://localhost:5001/api/technician/tickets/${techIdentifier}`);
+      const res = await axios.get(`${API_BASE_URL}/api/technician/tickets/${techIdentifier}`);
       setTickets(res.data);
     } catch (err) {
       console.error("Error fetching technician tickets:", err);
@@ -234,7 +235,7 @@ export default function TechnicianDashboard() {
     if (!selectedTicket) return;
     setSaving(true);
     try {
-      await axios.put(`http://localhost:5001/api/technician/tickets/${selectedTicket.id}`, {
+      await axios.put(`${API_BASE_URL}/api/technician/tickets/${selectedTicket.id}`, {
         status: updateStatus,
         maintenance_notes: updateNotes,
         worker_photo: workerPhoto

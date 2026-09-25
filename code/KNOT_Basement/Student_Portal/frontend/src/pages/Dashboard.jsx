@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import TimetableCalendar from '../components/TimetableCalendar';
 import BookingVerificationBanner from '../components/BookingVerificationBanner';
+import { API_BASE_URL } from '../config/api';
 
 export default function Dashboard() {
   const [faults, setFaults] = useState([]);
@@ -23,9 +24,9 @@ export default function Dashboard() {
     const fetchData = async () => {
       try {
         const [faultsRes, bookingsRes, roomsRes] = await Promise.all([
-          axios.get(`http://localhost:5001/api/faults/${user.id}`),
-          axios.get(`http://localhost:5001/api/bookings/${user.id}`),
-          axios.get(`http://localhost:5001/api/rooms`)
+          axios.get(`${API_BASE_URL}/api/faults/${user.id}`),
+          axios.get(`${API_BASE_URL}/api/bookings/${user.id}`),
+          axios.get(`${API_BASE_URL}/api/rooms`)
         ]);
         setFaults(faultsRes.data);
         setBookings(bookingsRes.data);
@@ -70,7 +71,7 @@ export default function Dashboard() {
 
         {/* 2-Step Verification Banner */}
         <BookingVerificationBanner user={user} onActionComplete={() => {
-          axios.get(`http://localhost:5001/api/bookings/${user.id}`).then(res => setBookings(res.data));
+          axios.get(`${API_BASE_URL}/api/bookings/${user.id}`).then(res => setBookings(res.data));
         }} />
 
         <section className="mb-8">

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from '../config/api';
 import {
   Calendar as CalendarIcon,
   ChevronLeft,
@@ -31,8 +32,8 @@ export default function TimetableCalendar() {
       try {
         setLoading(true);
         const [bookingsRes, roomsRes] = await Promise.all([
-          axios.get('http://localhost:5001/api/schedule/all'),
-          axios.get('http://localhost:5001/api/admin/rooms')
+          axios.get(`${API_BASE_URL}/api/schedule/all`),
+          axios.get(`${API_BASE_URL}/api/admin/rooms`)
         ]);
         setBookings(bookingsRes.data);
         setRooms(roomsRes.data);

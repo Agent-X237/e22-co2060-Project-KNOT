@@ -16,6 +16,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import axios from 'axios';
+import { API_BASE_URL } from '../config/api';
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -31,8 +32,8 @@ export default function Profile() {
       setLoading(true);
       try {
         const [faultsRes, bookingsRes] = await Promise.allSettled([
-          axios.get(`http://localhost:5001/api/faults/${user.id}`),
-          axios.get(`http://localhost:5001/api/bookings/${user.id}`)
+          axios.get(`${API_BASE_URL}/api/faults/${user.id}`),
+          axios.get(`${API_BASE_URL}/api/bookings/${user.id}`)
         ]);
         const faultCount = faultsRes.status === 'fulfilled' ? (Array.isArray(faultsRes.value.data) ? faultsRes.value.data.length : 0) : 0;
         const bookingCount = bookingsRes.status === 'fulfilled' ? (Array.isArray(bookingsRes.value.data) ? bookingsRes.value.data.length : 0) : 0;
