@@ -1,0 +1,19 @@
+Room Name,Day of Week,Start Time,End Time,Purpose,Lecturer
+EOE Hall - Engineering South,Monday,08:30,10:30,CO324 Software Engineering Lecture,Dr. Dhammika Elkaduwe
+EOE Hall - Engineering South,Monday,10:30,12:30,CO221 Digital Design Lecture,Dr. Isuru Nawinne
+LH01 - Lecture Hall 01,Monday,13:30,15:30,EE201 Circuit Theory,Prof. Janaka Ekanayake
+Computer Lab 01,Monday,15:30,17:30,CO222 Programming Lab Group A,Dr. Suneth Namal
+EOE Hall - Engineering South,Tuesday,08:30,10:30,CO321 Embedded Systems,Dr. Isuru Nawinne
+DO1 - Drawing Office 1,Tuesday,10:30,12:30,CE201 Structural Analysis Tutorial,Dr. Swarnalatha Radhakrishnan
+Seminar Room A,Tuesday,13:30,15:30,CO325 Operating Systems Seminar,Dr. Kamalanath Samarakoon
+Computer Lab 02,Tuesday,15:30,17:30,CO322 Data Structures Practical,Dr. Ziyan Maraikar
+EOE Hall - Engineering South,Wednesday,08:30,10:30,CO223 Computer Communication Networks,Prof. Roshan G. Ragel
+LH02 - Lecture Hall 02,Wednesday,10:30,12:30,EE302 Power Electronics Lecture,Prof. Janaka Ekanayake
+Electronics Lab,Wednesday,13:30,16:30,CO321 Hardware Systems Lab,Dr. Isuru Nawinne
+EOE Hall - Engineering South,Thursday,08:30,10:30,ME202 Fluid Mechanics Lecture,Dr. Swarnalatha Radhakrishnan
+DO2 - Drawing Office 2,Thursday,10:30,12:30,CE201 Engineering Drawing,Dr. Swarnalatha Radhakrishnan
+Seminar Room B,Thursday,13:30,15:30,CO324 Project Review Presentation,Dr. Dhammika Elkaduwe
+Computer Lab 01,Thursday,15:30,17:30,CO223 Network Simulation Lab,Prof. Roshan G. Ragel
+EOE Hall - Engineering South,Friday,08:30,10:30,CO322 Data Structures & Algorithms,Dr. Ziyan Maraikar
+LH01 - Lecture Hall 01,Friday,10:30,12:30,CO222 Programming Methodology,Dr. Suneth Namal
+Computer Lab 02,Friday,13:30,16:30,CO324 Software Architecture Lab,Dr. Dhammika Elkaduwe

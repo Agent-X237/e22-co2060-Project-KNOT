@@ -18,9 +18,10 @@ dist/
 build/
 .vite/
 
-# OS files
+# OS & Office files
 .DS_Store
 Thumbs.db
+~$*
 
 # IDE
 .vscode/

@@ -1,9 +1,9 @@
 # KNOT – University Resource & Maintenance Management Platform
-## Project No. 19 | Complete Project Milestone Progression
+## Project No. 19 | Complete Project Milestone Progression (Milestones 1 – 4 Final Evaluation)
 
 ## 📌 Project Overview
 
-KNOT is a centralized web-based platform designed to manage university resource booking and maintenance reporting within the Faculty of Engineering. The system integrates lecture hall and laboratory scheduling with campus issue reporting to improve transparency, efficiency, and coordination across students, staff, booking administrators, maintenance administrators, and technicians.
+KNOT is a centralized web-based platform designed to manage university resource booking and maintenance reporting within the Faculty of Engineering, University of Peradeniya. The system integrates lecture hall and laboratory scheduling with campus issue reporting to improve transparency, efficiency, and coordination across students, staff, booking administrators, maintenance administrators, and technicians.
 
 ---
 
@@ -16,7 +16,7 @@ The Faculty traditionally relies on manual record books and informal communicati
 - Delayed maintenance responses  
 - Poor coordination between academic and administrative departments  
 
-KNOT addresses these challenges through a unified digital solution with automated conflict detection and real-time tracking.
+KNOT addresses these challenges through a unified digital solution with automated conflict detection, real-time tracking, 2-step verification, and automated email notifications.
 
 ---
 
@@ -43,7 +43,7 @@ KNOT addresses these challenges through a unified digital solution with automate
 
 ---
 
-### 🌟 Milestone 3: Real-Time Availability Grid, Worker Portal, Bulk Schedule Import & System Integration
+### 🔹 Milestone 3: Real-Time Availability Grid, Worker Portal, Bulk Schedule Import & System Integration
 - **Bulk Semester Schedule Import Implementation (Dean's Requirement)**:
   - **Master Timetable Import Engine**: Built specifically per the Dean's requirement to handle pre-booked master semester timetables.
   - **Automated Validation & Ingestion**: Reads semester schedule files, parses day/time/hall/lecturer attributes, automatically checks for conflicts against existing database reservations, skips overlapping slots, and bulk-populates recurring semester lectures into the system.
@@ -70,41 +70,81 @@ KNOT addresses these challenges through a unified digital solution with automate
 
 ---
 
-## 🔑 Demo Access Credentials
-
-| Role | Username | Password | Access & Portal Capabilities |
-| :--- | :--- | :--- | :--- |
-| **Student** | `e22237` | `1234` | Hall & lab bookings, interactive slot picker, fault reporting with map pins & photo attachments |
-| **Lecturer** | `lecturer1` | `1234` | Direct room booking, student request endorsement/rejection, fault reporting |
-| **Booking Admin** | `bookadmin` | `adminpass` | Final AR office hall approvals, rejection feedback, bulk schedule import, multi-criteria sorting/filtering, auto-booking toggle |
-| **Maintenance Admin** | `admin` | `adminpass` | Full ticketing management, technician task assignments, evidence photo viewer, maintenance notes |
-| **Technician / Worker** | `alex` | `1234` | Assigned task queue, interactive job detail modal, status updates (`In Progress`/`Resolved`), work logs |
+### 🌟 Milestone 4: 2-Step Verification, Nodemailer Email Dispatch, Profile Management, Docker & Production Hosting (Final Evaluation)
+- **Automated 2-Step Booking Verification & Background Anti-No-Show Engine**:
+  - Implemented 2-step attendance verification for room bookings to prevent ghost bookings and slot hoarding.
+  - Automated Node.js background cron worker (`server.js`) running every 60 seconds to scan unverified room reservations, auto-expire unconfirmed holds, and release room slots back to the public pool.
+- **Nodemailer Automated Email & Notification Dispatch System**:
+  - Integrated Nodemailer SMTP service with responsive HTML email notification templates.
+  - Automatically dispatches real-time transactional emails for booking status updates (Approval/Rejection), 2-step verification reminders, fault report filings, technician job assignments, and ticket resolution logs.
+- **Flexible Dual-Credential Authentication (Username or Email Login)**:
+  - Enhanced backend REST API logic (`/api/auth/login`) allowing users across all 5 roles to log in using either their Username / Registration ID (e.g. `e22237`, `lecturer1`) or their verified Email Address (`e22237@eng.pdn.ac.lk`).
+- **User Profile & Credentials Management Portal**:
+  - Comprehensive user profile settings page across all role dashboards for updating display names, contact phone numbers, employee/student IDs, office/home addresses, and performing secure password updates with instant MySQL persistence.
+- **Production Multi-Container Docker & Docker Compose Stack**:
+  - Fully containerized production environment defined via `docker-compose.yml`, multi-stage Docker builds, Nginx reverse proxy integration, persistent MySQL database volumes, automated database initialization scripts (`setup_db.js`), health checks, and restart resilience.
+- **Cloudflare Zero-Trust Edge Tunnel & Live Production Web Hosting**:
+  - Live production deployment accessible via **`https://foe.knotpdn.tech`** (Frontend) and **`https://backend.knotpdn.tech`** (REST API).
+  - Production infrastructure powered by Cloudflare Edge Tunnel (`cloudflared`) and PM2 process manager for 24/7 background availability, zero-trust edge security, and SSL/TLS encryption.
+- **Comprehensive System Testing, Code Coverage & Final Documentation Suite**:
+  - Automated test runner (`test_runner.js`) achieving 100% test pass rate across unit and API integration suites and 95.1% code coverage.
+  - Published comprehensive documentation suite: Developer & Maintainer Guide, User Manual, Docker Deployment Guide, and System Testing & Validation Report (in both Markdown and Microsoft Word `.docx` formats).
 
 ---
 
-## 💻 Quick Start & Running Commands
+## 🔑 Demo Access Credentials
 
-### 1️⃣ Database Setup & Initialization
+| Role | Username / Email | Password | Access & Portal Capabilities |
+| :--- | :--- | :--- | :--- |
+| **Student** | `e22237` or `e22237@eng.pdn.ac.lk` | `1234` | Hall & lab bookings, interactive slot picker, 2-step verification, fault reporting with map pins & photo attachments, profile settings |
+| **Lecturer** | `lecturer1` or `lecturer1@eng.pdn.ac.lk` | `1234` | Direct room booking, student request endorsement/rejection, fault reporting, profile settings |
+| **Booking Admin** | `bookadmin` or `bookadmin@eng.pdn.ac.lk` | `adminpass` | Final AR office hall approvals, rejection feedback, bulk schedule import, multi-criteria sorting/filtering, auto-booking toggle |
+| **Maintenance Admin** | `admin` or `admin@eng.pdn.ac.lk` | `adminpass` | Full ticketing management, technician task assignments, evidence photo viewer, maintenance notes |
+| **Technician / Worker** | `alex` or `alex@eng.pdn.ac.lk` | `1234` | Assigned task queue, interactive job detail modal, status updates (`In Progress`/`Resolved`), work logs |
+
+---
+
+## 🌐 Live Production Deployment & Quick Start
+
+### 🌍 Live Hosted Production Application
+- **Main Portal Web App**: **[https://foe.knotpdn.tech](https://foe.knotpdn.tech)**
+- **API Backend Endpoint**: **[https://backend.knotpdn.tech](https://backend.knotpdn.tech)**
+
+---
+
+### 💻 Local Development Setup & Running Commands
+
+#### Option A: Running via Node.js Gateway (Local Development)
+
+##### 1️⃣ Database Setup & Initialization
 Ensure MySQL is running on `localhost:3306`, then execute:
 ```bash
 node code/KNOT_Basement/Student_Portal/database/setup_db.js
 ```
 
-### 2️⃣ Start the Gateway Server
+##### 2️⃣ Start the Gateway Server
 Launch all backend and frontend services simultaneously:
 ```bash
 node code/KNOT_Basement/gateway_server.js
 ```
 Open your browser and navigate to **`http://localhost:3000`**.
 
+#### Option B: Running via Docker Compose (Multi-Container Production Stack)
+
+```bash
+docker-compose up -d --build
+```
+This launches MySQL 8.0, Nginx reverse proxy, and all micro-services automatically.
+
 ---
 
 ## 🏗️ System Architecture & Stack
 
 - **Frontend:** React.js, Tailwind CSS, Vite, Lucide & Material Symbols Icons, Leaflet (OpenStreetMap)  
-- **Backend:** Node.js, Express.js (50MB payload support for Base64 attachments & bulk import parsing)  
-- **Database:** MySQL (`knot_db`) with relational normalization and automatic schema migrations  
-- **Architecture:** Unified Gateway Server (`gateway_server.js`) orchestrating RESTful micro-services  
+- **Backend:** Node.js, Express.js (50MB payload support for Base64 attachments & bulk import parsing), Nodemailer (SMTP), Cron Verification Engine  
+- **Database:** MySQL (`knot_db`) with relational normalization and automatic schema migrations (`setup_db.js`)  
+- **Architecture:** Unified Gateway Server (`gateway_server.js`), Nginx Proxy, Cloudflare Zero-Trust Edge Tunnel  
+- **Containerization & Hosting:** Docker, Docker Compose, PM2, Cloudflare Tunnels (`cloudflared`)  
 
 ---
 
@@ -113,29 +153,26 @@ Open your browser and navigate to **`http://localhost:3000`**.
 - **Milestone 1** – Core Architecture, UI Design & Multi-Role RBAC Authentication Setup ✅ *(Completed)*
 - **Milestone 2** – Multi-Tier Booking Workflow & Basic Maintenance Reporting ✅ *(Completed)*
 - **Milestone 3** – Dean's Bulk Semester Timetable Import, Interactive Availability Grid, Worker Portal Integration, Admin Task Assignment, Map & Photo Evidence Inspector, Timetable Agenda View & System Validation ✅ *(Completed)*
+- **Milestone 4** – 2-Step Verification Engine, Nodemailer Automated Email System, Flexible Dual-Credential Login, Profile Management, Production Docker Stack, Cloudflare Edge Tunnel Deployment & Final Project Evaluation ✅ *(Completed - Final Milestone)*
 
 ---
 
 ## 📚 System Documentation
 
 - 🛠️ **Developer & Maintainer Guide**: [Markdown Version](docs/DEVELOPER_GUIDE.md) | [Word Document (.docx)](docs/DEVELOPER_GUIDE.docx)
-  - *Technical architecture, database schemas, ER diagrams, backend APIs, 2-step verification cron logic, and deployment instructions.*
+  - *Technical architecture, database schemas, ER diagrams, backend APIs, 2-step verification cron logic, Cloudflare tunnel setup, and deployment instructions.*
 - 📖 **Comprehensive User Manual**: [Markdown Version](docs/USER_MANUAL.md) | [Word Document (.docx)](docs/USER_MANUAL.docx)
   - *Step-by-step user guide for Students, Lecturers, Booking Admins (AR Office), Maintenance Admins, and Field Technicians.*
 - 🧪 **System Testing & Validation Report**: [Markdown Version](docs/TESTING_AND_VALIDATION.md) | [Word Document (.docx)](docs/TESTING_AND_VALIDATION.docx)
-  - *Automated test execution logs (100% pass rate), code coverage metrics (95.1%), manual test traceability matrix (RTM), bug resolution log, and performance benchmark evidence.*
+  - *Automated test execution logs (100% pass rate), code coverage metrics (95.1%), manual test traceability matrix (RTM), bug resolution log, hosting/tunnel validation, and performance benchmark evidence.*
 - 🐳 **Docker Containerization Guide**: [Markdown Version](docs/DOCKER_GUIDE.md) | [Word Document (.docx)](docs/DOCKER_GUIDE.docx)
   - *Complete Docker & Docker Compose setup, multi-container architecture, Nginx proxy, MySQL volume persistence, and one-command deployment instructions.*
 
 ---
 
-
-
-
 ## 👥 Team Roles
 
-- **Team Leader / Lead Developer:** Minhaj Ali (E/22/237) – System Architecture, Gateway Integration, Availability Grid & Backend APIs  
+- **Team Leader / Lead Developer:** Minhaj Ali (E/22/237) – System Architecture, Gateway Integration, Availability Grid, 2-Step Verification Engine, Docker & Production Hosting  
 - **Product Owner:** Senara Senanayake (E/22/366) – Requirements & UX Design  
-- **Developer:** Chamudi Perera (E/22/280) – Maintenance Workflow & Technician Panel 
-- **Developer:** Ewmi Wijesinghe (E/22/443) – Student Interface & Timetable Calendar  
-
+- **Developer:** Chamudi Perera (E/22/280) – Maintenance Workflow, Technician Panel & Email Dispatch System  
+- **Developer:** Ewmi Wijesinghe (E/22/443) – Student Interface, Profile Management & Timetable Calendar  

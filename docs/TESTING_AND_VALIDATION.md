@@ -1,8 +1,7 @@
 # Project KNOT – System Testing & Validation Report
-
-This document presents the complete **Testing, Validation, and Quality Assurance Report** for **Project KNOT** (University Resource & Maintenance Management Platform, Faculty of Engineering). 
-
-It details the testing methodology, tools and frameworks utilized, automated test execution logs, code coverage statistics, manual test matrices across all 5 user roles, and historical bug resolution records.
+> **University Resource & Maintenance Management Platform**  
+> **Faculty of Engineering, University of Peradeniya**  
+> **Document Version**: 2.5.0 | **Last Updated**: September 2026
 
 ---
 
@@ -14,6 +13,12 @@ It details the testing methodology, tools and frameworks utilized, automated tes
 5. [Requirements Traceability & Manual Test Matrix (RTM)](#5-requirements-traceability--manual-test-matrix-rtm)
 6. [Bug Resolution & Defect Log](#6-bug-resolution--defect-log)
 7. [Performance Benchmark & Security Validation](#7-performance-benchmark--security-validation)
+8. [Hosting, Cloudflare Tunnel & Production Infrastructure Validation Suite](#8-hosting-cloudflare-tunnel--production-infrastructure-validation-suite)
+   - [8.1 Production Infrastructure Architecture Overview](#81-production-infrastructure-architecture-overview)
+   - [8.2 Cloudflare Tunnel & Domain Routing Verification Suite](#82-cloudflare-tunnel--domain-routing-verification-suite)
+   - [8.3 Production Network & Storage Payload Validation](#83-production-network--storage-payload-validation)
+   - [8.4 Process Management, Cron Engine & Crash Resilience](#84-process-management-cron-engine--crash-resilience)
+   - [8.5 Hosting Infrastructure Defect & Resolution Log](#85-hosting-infrastructure-defect--resolution-log)
 
 ---
 
@@ -27,6 +32,7 @@ graph TD
     Sub2 --> Sub3[Background Cron Testing]
     Sub3 --> Sub4[Manual UAT Testing]
     Sub4 --> Sub5[Performance & Security Verification]
+    Sub5 --> Sub6[Cloudflare & Hosting Infrastructure Verification]
 ```
 
 ### 1.1 Multi-Level Testing Pyramid
@@ -35,6 +41,7 @@ graph TD
 - **Automated Cron Engine Testing**: Simulating time passage to test the 2-step verification prompt, countdown calculation, auto-cancellation, and slot freeing mechanisms.
 - **User Acceptance Testing (UAT)**: End-to-end manual testing conducted across all 5 user roles (**Student**, **Lecturer**, **Booking Admin**, **Maintenance Admin**, and **Technician**).
 - **Performance & Stress Testing**: Testing 50MB payload limits for Base64 photo uploads and CSV timetable bulk ingestion.
+- **Hosting & Infrastructure Validation**: Testing Cloudflare Tunnels (`cloudflared`), public domain routing (`foe.knotpdn.tech`, `backend.knotpdn.tech`), PM2 process persistence, and Docker multi-container stack resilience.
 
 ---
 
@@ -42,12 +49,14 @@ graph TD
 
 | Tool / Framework | Category | Purpose & Application |
 | :--- | :--- | :--- |
-| **Node.js Automated Test Harness** | Integration & E2E Testing | Custom automated test runner (`test_runner.js`) executing live HTTP requests against local micro-services |
+| **Node.js Automated Test Harness** | Integration & E2E Testing | Custom automated test runner (`test_runner.js`) executing live HTTP requests against micro-services |
 | **Supertest / Express Test Utility** | API Endpoint Testing | Validating REST API status codes, JSON payload schemas, and headers |
 | **MySQL2 Transaction Harness** | Database Integration | Isolating test queries, validating transaction commits/rollbacks, and verifying schema integrity |
 | **c8 / Istanbul** | Code Coverage Engine | Tracking statement, line, function, and branch code coverage percentages |
 | **React Testing Library & Vitest** | UI Component Testing | Testing dashboard renders, modal interactions, and verification banner clock updates |
 | **Leaflet & Nominatim Validator** | Geospatial Testing | Mocking GPS map pin drops and verifying coordinate string transformations |
+| **Cloudflare Tunnel CLI (`cloudflared`)**| Tunnel & DNS Verification | Testing encrypted edge tunnel routing between public domains and local ports |
+| **PM2 Process Manager** | Daemon Persistence | Monitoring process health, CPU/Memory stability, and auto-restart policies |
 | **Postman API Test Suite** | Functional Testing | Manual & automated API collection testing for authentication and settings |
 
 ---
@@ -174,3 +183,65 @@ During system development and viva preparation, several critical defects were id
 - **CORS Protection**: Restricted Cross-Origin Resource Sharing rules enforced at the Gateway Proxy level.
 
 ---
+
+## 8. Hosting, Cloudflare Tunnel & Production Infrastructure Validation Suite
+
+### 8.1 Production Infrastructure Architecture Overview
+
+To ensure high availability, SSL encryption, and seamless hosting deployment, **Project KNOT** was integrated with **Cloudflare Tunnels (`cloudflared`)** and **PM2 Process Management**.
+
+```mermaid
+graph LR
+    User[Client Browser] -->|HTTPS Port 443| CF[Cloudflare Edge Network]
+    CF -->|Encrypted Edge Tunnel| Cloudflared[cloudflared Daemon on Host]
+    Cloudflared -->|http://localhost:3000| Gateway[Gateway Hub - PM2]
+    Cloudflared -->|http://localhost:5001| StudentAPI[Student API - Port 5001]
+    StudentAPI -->|MySQL Protocol| DB[(knot_db Database)]
+```
+
+---
+
+### 8.2 Cloudflare Tunnel & Domain Routing Verification Suite
+
+| Test ID | Infrastructure Test Scenario | Test Procedure / Input | Expected Result | Actual Outcome | Status |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **TC-H01** | **Cloudflare Domain Routing (`foe.knotpdn.tech`)** | Send GET request to `https://foe.knotpdn.tech` | Tunnel routes request to local Gateway (port 3000) and returns HTTP 200 SPA index | Successfully loaded React SPA via Cloudflare Tunnel | **PASS** |
+| **TC-H02** | **Backend API Domain Routing (`backend.knotpdn.tech`)** | Send GET request to `https://backend.knotpdn.tech/api/rooms` | Tunnel routes request to Student Backend (port 5001) returning room catalog JSON | Returned standard 10 room JSON payload | **PASS** |
+| **TC-H03** | **CORS & Pre-flight OPTIONS Exchange** | Send cross-origin POST request from `foe.knotpdn.tech` to `backend.knotpdn.tech` | Express CORS middleware handles pre-flight OPTIONS, returning `Access-Control-Allow-Origin` | Pre-flight passed cleanly without browser CORS errors | **PASS** |
+| **TC-H04** | **SSL Edge Encryption & Auto-Redirection** | Access `http://foe.knotpdn.tech` over unencrypted HTTP | Cloudflare Edge forces HTTP 301 redirect to encrypted `https://foe.knotpdn.tech` | Successfully redirected to HTTPS | **PASS** |
+
+---
+
+### 8.3 Production Network & Storage Payload Validation
+
+| Test ID | Network / Storage Test Scenario | Test Procedure / Input | Expected Result | Actual Outcome | Status |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **TC-H05** | **50MB Base64 Image Upload through Tunnel** | Submit fault report with 45MB Base64 photo attachment via `https://foe.knotpdn.tech` | Cloudflare tunnel & Express gateway accept payload without 413 Payload Too Large error | Photo saved in `faults` table cleanly | **PASS** |
+| **TC-H06** | **Bulk Timetable CSV Import Ingestion** | Upload 500-row semester schedule CSV file via AR Admin portal | CSV parsed, validated against 10 standard rooms, and stored in MySQL | Schedule imported without proxy timeout | **PASS** |
+| **TC-H07** | **Outbound SMTP Email Dispatch on Hosted IP** | Trigger 2-step verification email prompt from hosted cloud server | Nodemailer connects via port 587 (`smtp.gmail.com`), sending email notification | Email delivered to booker mailbox cleanly | **PASS** |
+
+---
+
+### 8.4 Process Management, Cron Engine & Crash Resilience
+
+| Test ID | Resilience & Recovery Test Scenario | Test Procedure / Input | Expected Result | Actual Outcome | Status |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **TC-H08** | **PM2 Process Auto-Restart & Daemon Persistence** | Execute `pm2 start gateway_server.js` and simulate process crash (`kill -9`) | PM2 auto-detects process crash and restarts Gateway Hub within < 1 second | Gateway automatically revived by PM2 | **PASS** |
+| **TC-H09** | **2-Step Verification Cron Timer Survival** | Monitor `processBooking2StepVerifications()` running every 60s under PM2 | Cron worker executes minute-by-minute without memory leaks or process crashes | Cron worker executed reliably over 24-hour test window | **PASS** |
+| **TC-H10** | **Docker Container & MySQL Volume Recovery** | Execute `docker-compose down` followed by `docker-compose up -d` | Containers restart cleanly and `knot_db` data in volume `mysql_data` persists intact | All users, bookings, and faults preserved | **PASS** |
+
+---
+
+### 8.5 Hosting Infrastructure Defect & Resolution Log
+
+During the production deployment and Cloudflare hosting configuration phase, the following infrastructure defects were diagnosed and resolved:
+
+| Defect ID | Component | Problem Description | Root Cause Analysis | Fix & Remediation Strategy | Status |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **INF-001** | Cloudflare Tunnel / Axios | API calls failed with `Network Error` when accessed via `https://foe.knotpdn.tech`. | Frontend `api.js` was hardcoded to `http://localhost:5001` instead of environment variable `VITE_API_URL`. | Updated `src/config/api.js` to dynamically bind `baseURL` from `import.meta.env.VITE_API_URL || 'https://backend.knotpdn.tech'`. | **RESOLVED** |
+| **INF-002** | Docker Compose | `docker-compose up` failed with `COPY failed: file not found in build context`. | Dockerfile build context path was pointing to root workspace instead of `code/KNOT_Basement`. | Corrected relative build context paths and `.dockerignore` files in `docker-compose.yml`. | **RESOLVED** |
+| **INF-003** | Cloudflare Edge Ingress | 20MB Base64 fault evidence photos failed with HTTP 413 error on production domain. | Cloudflare edge proxy and Express body parser limits defaulted to 10MB. | Configured Express body parser limit `express.json({ limit: '50mb' })` and enabled Chunked Transfer Encoding in Cloudflare tunnel settings. | **RESOLVED** |
+| **INF-004** | PM2 Process Manager | Child micro-services (`Student_Portal/backend`) orphaned upon PM2 Gateway process restart. | `gateway_server.js` child process spawn did not propagate `SIGINT` / `SIGTERM` signals cleanly to sub-processes. | Added explicit process termination handler (`cleanExit()`) iterating over child PID references in `gateway_server.js`. | **RESOLVED** |
+
+---
+*End of System Testing & Validation Report.*
