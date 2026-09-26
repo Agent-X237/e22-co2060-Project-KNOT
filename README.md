@@ -159,9 +159,9 @@ This launches MySQL 8.0, Nginx reverse proxy, and all micro-services automatical
 
 ## 📚 System Documentation
 
-- 🛠️ **Developer & Maintainer Guide**: [Markdown Version](docs/DEVELOPER_GUIDE.md) | [Word Document (.docx)](docs/DEVELOPER_GUIDE.docx)
+- 🛠️ **Developer & Maintainer Guide**: [PDF Document](docs/Team_19_DEVELOPER_GUIDE.pdf)
   - *Technical architecture, database schemas, ER diagrams, backend APIs, 2-step verification cron logic, Cloudflare tunnel setup, and deployment instructions.*
-- 📖 **Comprehensive User Manual**: [Markdown Version](docs/USER_MANUAL.md) | [Word Document (.docx)](docs/USER_MANUAL.docx)
+- 📖 **Comprehensive User Manual**: [PDF Document](docs/Project_KNOT_User_Manual.pdf)
   - *Step-by-step user guide for Students, Lecturers, Booking Admins (AR Office), Maintenance Admins, and Field Technicians.*
 - 🧪 **System Testing & Validation Report**: [Markdown Version](docs/TESTING_AND_VALIDATION.md) | [Word Document (.docx)](docs/TESTING_AND_VALIDATION.docx)
   - *Automated test execution logs (100% pass rate), code coverage metrics (95.1%), manual test traceability matrix (RTM), bug resolution log, hosting/tunnel validation, and performance benchmark evidence.*

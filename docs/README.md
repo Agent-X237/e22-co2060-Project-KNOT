@@ -33,9 +33,9 @@ title: Project KNOT – University Resource & Maintenance Management Platform
 
 ## 📚 Complete System Guides
 
-- 🛠️ **Developer & Maintainer Guide**: [Markdown Version](DEVELOPER_GUIDE.md) | [Word Document (.docx)](DEVELOPER_GUIDE.docx)
+- 🛠️ **Developer & Maintainer Guide**: [PDF Document](Team_19_DEVELOPER_GUIDE.pdf)
   - *Technical architecture, database models, micro-service gateway proxy setup, 2-step verification background cron jobs, Cloudflare Edge Tunnels, and API reference.*
-- 📖 **Comprehensive User Manual**: [Markdown Version](USER_MANUAL.md) | [Word Document (.docx)](USER_MANUAL.docx)
+- 📖 **Comprehensive User Manual**: [PDF Document](Project_KNOT_User_Manual.pdf)
   - *Role-based step-by-step user manual for Students, Lecturers, Booking Admins (AR Office), Maintenance Admins, and Field Technicians.*
 - 🧪 **System Testing & Validation Report**: [Markdown Version](TESTING_AND_VALIDATION.md) | [Word Document (.docx)](TESTING_AND_VALIDATION.docx)
   - *Automated test execution logs (100% pass rate), code coverage metrics (95.1%), manual test traceability matrix (RTM), bug resolution log, hosting/tunnel validation, and performance benchmarks.*
